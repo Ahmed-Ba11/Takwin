@@ -1,10 +1,252 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#214c40"><title>تكوين — من كلمات إلى تجربة</title><link rel="stylesheet" href="fonts.css"><link rel="stylesheet" href="styles.css"></head><body>
-<header class="header"><a href="#home" class="brand" aria-label="تكوين الرئيسية"><span class="brand-mark" aria-hidden="true">ت</span><span>تكوين<small>TAKWEEN STUDIO</small></span></a><nav><a href="#studio">مساحة التكوين</a><a href="#inspiration">الإلهام</a><button id="motion" class="quiet" aria-pressed="true">الحركة مفعّلة</button></nav><a class="button primary" href="#studio">ابدأ بفكرة <span aria-hidden="true">↖</span></a></header>
-<main id="home"><section class="hero"><div class="hero-copy"><span class="eyebrow"><i></i> مساحة لكلماتك، واحتمالاتها</span><h1>كلماتك،<br>بشكلٍ <em>يستحقها.</em></h1><p>مقال تقرؤه بشغف. بطاقات تستكشفها.<br>ومراحل تتحول إلى عرضٍ ينبض بالحياة.</p><div class="hero-actions"><a href="#studio" class="button primary">كوّن تجربتك <span>↖</span></a><button id="try-demo" class="quiet">استكشف مثالًا <span>◁</span></button></div><span class="micro">على جهازك · دون حساب · تصدير HTML</span></div><div class="hero-art" aria-label="مثال بصري لتكوين الأفكار"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="art-back glass"></div><article class="art-card glass"><div class="overline">TAKWEEN / A LITTLE POSSIBILITY</div><span class="art-number">01</span><h2>كل بداية،<br>تبدأ بفكرة.</h2><p>امنح كلماتك المساحة<br>لتأخذ شكلها الخاص.</p><div class="art-line"><i></i><i></i><i></i></div></article><div class="floating-label glass">نص واحد. أكثر من احتمال.</div></div></section>
-<section class="inspiration" id="inspiration"><div><span class="eyebrow">أشكال تتبع المعنى</span><h2>ما الذي ستكوّنه اليوم؟</h2></div><div class="example-grid"><button data-example="article" class="example glass"><span class="sample-lines" aria-hidden="true"><b></b><i></i><i></i></span><strong>مساحة للقراءة</strong><span>مقال بإيقاع بصري مريح</span></button><button data-example="steps" class="example glass"><span class="sample-steps" aria-hidden="true">١ — ٢ — ٣</span><strong>من فكرة إلى إنجاز</strong><span>مراحل تتقدم معك</span></button><button data-example="cards" class="example glass"><span class="sample-cards" aria-hidden="true"><i></i><i></i><i></i></span><strong>أفكار تستحق الوقوف</strong><span>بطاقات لكل فكرة مساحتها</span></button></div></section></main>
-<main id="studio" hidden><div class="studio-heading"><div><span class="eyebrow">مساحة التكوين</span><h1>ماذا تريد أن تقول؟</h1></div><div class="toolbar"><span id="save-status" role="status">محفوظ على هذا المتصفح</span><button id="undo" class="quiet" disabled>تراجع</button><button id="present" class="button secondary">عرض التجربة</button><button id="pdf" class="button secondary" title="حفظ PDF من نافذة الطباعة؛ نسخة ثابتة دون حركة">حفظ PDF</button><button id="export" class="button primary">تنزيل HTML <span>↓</span></button></div></div><div class="mobile-tabs" role="tablist" aria-label="مساحة العمل"><button role="tab" aria-selected="true" data-panel="editor">التحرير</button><button role="tab" aria-selected="false" data-panel="preview">المعاينة</button></div><div class="workspace" data-panel="editor"><aside class="editor glass" id="editor-panel"><div class="editor-tabs" role="tablist" aria-label="خطوات الإنشاء"><button data-editor="source" role="tab" aria-selected="true">١. النص</button><button data-editor="outline" role="tab" aria-selected="false">٢. المشاهد</button><button data-editor="design" role="tab" aria-selected="false">٣. المظهر</button></div>
-<section id="source-panel"><label for="project-title">عنوان التجربة</label><input id="project-title" placeholder="عنوان يمنح الفكرة بداية" dir="auto"><div class="label-row"><label for="source-text">ابدأ بكلماتك</label><span id="word-count">٠ كلمة</span></div><textarea id="source-text" rows="12" placeholder="الصق مقالًا، أفكارًا، خطوات أو قصة…" dir="auto"></textarea><p class="hint">نحتفظ بالنص الأصلي كاملًا. العناوين والفقرات والقوائم تساعد على تنظيم النتيجة.</p><label class="check"><input type="checkbox" id="review-first"> أراجع المخطط قبل المعاينة</label><button id="generate" class="button primary full">كوّن النص <span>↖</span></button><button id="local-ai" class="button secondary full">إعادة صياغة بذكاء محلي</button><p id="ai-status" class="hint">التنسيق يعمل محليًا. جارٍ فحص دعم النموذج المحلي…</p><details><summary>أمثلة للبداية</summary><div class="example-links"><button data-example="article">مقال قصير</button><button data-example="steps">مراحل مشروع</button><button data-example="cards">قائمة أفكار</button></div></details></section>
-<section id="outline-panel" hidden><div class="label-row"><h2>مخطط تجربتك</h2><button id="add-scene" class="quiet">+ مشهد</button></div><p class="hint">غيّر نوع كل مشهد أو رتّبه. المحتوى الطويل يُقسّم إلى مشاهد إضافية دون حذف.</p><div id="scene-list"></div></section>
-<section id="design-panel" hidden><label for="format">طريقة العرض</label><select id="format"><option value="article">صفحة قراءة مرنة</option><option value="cards">مجموعة بطاقات</option><option value="slides">سلايدات للعرض</option></select><label>الطابع الزجاجي</label><div class="theme-options"><button data-theme="mist" aria-pressed="true"><i class="mist"></i>ضباب</button><button data-theme="sand" aria-pressed="false"><i class="sand"></i>رمل</button><button data-theme="olive" aria-pressed="false"><i class="olive"></i>زيتون</button></div><label for="motion-level">الحركة</label><select id="motion-level"><option value="expressive">تعبيرية</option><option value="calm">هادئة</option><option value="none">بدون حركة</option></select><label for="content-dir">اتجاه المحتوى</label><select id="content-dir"><option value="auto">تلقائي حسب النص</option><option value="rtl">من اليمين إلى اليسار</option><option value="ltr">من اليسار إلى اليمين</option></select><p class="hint">كل قالب يتكيّف مع المحتوى. يمكنك تغيير تركيب كل مشهد من تبويب المشاهد.</p></section></aside>
-<section class="preview-panel glass" id="preview-panel"><div class="preview-bar"><span><i class="live-dot"></i> معاينة حيّة</span><div><button id="preview-width" class="quiet" aria-pressed="false">عرض الهاتف</button><button id="preview-open" class="quiet">توسيع ↗</button></div></div><div id="preview" class="preview theme-mist"></div><div class="preview-bottom"><span id="scene-count"></span><span>تتكوّن من كلماتك</span></div></section></div></main>
-<dialog id="viewer"><div class="viewer-bar"><strong>تكوين / وضع العرض</strong><div><button id="fullscreen" class="quiet">ملء الشاشة</button><button id="close-viewer" class="button secondary">العودة للتحرير ×</button></div></div><div id="view-content" class="preview"></div></dialog><dialog id="confirm"><h2>استبدال المحتوى الحالي؟</h2><p>سيحل المثال محل التجربة الحالية. يمكنك التراجع بعد الاستبدال.</p><div class="toolbar"><button id="cancel-confirm" class="button secondary">إلغاء</button><button id="accept-confirm" class="button primary">تحميل المثال</button></div></dialog><div id="toast" role="status" aria-live="polite"></div><footer><a href="#home" class="brand">تكوين</a><span>من كلمات إلى تجربة.</span><span>صُمّم لتبقى الفكرة لك.</span></footer><script type="module" src="app.js"></script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#214c40" />
+    <title>تكوين — من كلمات إلى تجربة</title>
+    <link rel="stylesheet" href="fonts.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <a href="#home" class="brand" aria-label="تكوين الرئيسية"
+        ><span class="brand-mark" aria-hidden="true">ت</span
+        ><span>تكوين<small>TAKWEEN STUDIO</small></span></a
+      >
+      <nav>
+        <a href="#studio">مساحة التكوين</a><a href="#inspiration">الإلهام</a
+        ><button id="motion" class="quiet" aria-pressed="true">
+          الحركة مفعّلة
+        </button>
+      </nav>
+      <a class="button primary" href="#studio"
+        >ابدأ بفكرة <span aria-hidden="true">↖</span></a
+      >
+    </header>
+    <main id="home">
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow"><i></i> مساحة لكلماتك، واحتمالاتها</span>
+          <h1>كلماتك،<br />بشكلٍ <em>يستحقها.</em></h1>
+          <p>
+            مقال تقرؤه بشغف. بطاقات تستكشفها.<br />ومراحل تتحول إلى عرضٍ ينبض
+            بالحياة.
+          </p>
+          <div class="hero-actions">
+            <a href="#studio" class="button primary"
+              >كوّن تجربتك <span>↖</span></a
+            ><button id="try-demo" class="quiet">
+              استكشف مثالًا <span>◁</span>
+            </button>
+          </div>
+          <span class="micro">على جهازك · دون حساب · تصدير HTML</span>
+        </div>
+        <div class="hero-art" aria-label="مثال بصري لتكوين الأفكار">
+          <div class="orb orb-one"></div>
+          <div class="orb orb-two"></div>
+          <div class="art-back glass"></div>
+          <article class="art-card glass">
+            <div class="overline">TAKWEEN / A LITTLE POSSIBILITY</div>
+            <span class="art-number">01</span>
+            <h2>كل بداية،<br />تبدأ بفكرة.</h2>
+            <p>امنح كلماتك المساحة<br />لتأخذ شكلها الخاص.</p>
+            <div class="art-line"><i></i><i></i><i></i></div>
+          </article>
+          <div class="floating-label glass">نص واحد. أكثر من احتمال.</div>
+        </div>
+      </section>
+      <section class="inspiration" id="inspiration">
+        <div>
+          <span class="eyebrow">أشكال تتبع المعنى</span>
+          <h2>ما الذي ستكوّنه اليوم؟</h2>
+        </div>
+        <div class="example-grid">
+          <button data-example="article" class="example glass">
+            <span class="sample-lines" aria-hidden="true"
+              ><b></b><i></i><i></i></span
+            ><strong>مساحة للقراءة</strong
+            ><span>مقال بإيقاع بصري مريح</span></button
+          ><button data-example="steps" class="example glass">
+            <span class="sample-steps" aria-hidden="true">١ — ٢ — ٣</span
+            ><strong>من فكرة إلى إنجاز</strong
+            ><span>مراحل تتقدم معك</span></button
+          ><button data-example="cards" class="example glass">
+            <span class="sample-cards" aria-hidden="true"
+              ><i></i><i></i><i></i></span
+            ><strong>أفكار تستحق الوقوف</strong
+            ><span>بطاقات لكل فكرة مساحتها</span>
+          </button>
+        </div>
+      </section>
+    </main>
+    <main id="studio" hidden>
+      <div class="studio-heading">
+        <div>
+          <span class="eyebrow">مساحة التكوين</span>
+          <h1>ماذا تريد أن تقول؟</h1>
+        </div>
+        <div class="toolbar">
+          <span id="save-status" role="status">محفوظ على هذا المتصفح</span
+          ><button id="undo" class="quiet" disabled>تراجع</button
+          ><button id="present" class="button secondary">عرض التجربة</button
+          ><button
+            id="pdf"
+            class="button secondary"
+            title="حفظ PDF من نافذة الطباعة؛ نسخة ثابتة دون حركة"
+          >
+            حفظ PDF</button
+          ><button id="export" class="button primary">
+            تنزيل HTML <span>↓</span>
+          </button>
+        </div>
+      </div>
+      <div class="mobile-tabs" role="tablist" aria-label="مساحة العمل">
+        <button role="tab" aria-selected="true" data-panel="editor">
+          التحرير</button
+        ><button role="tab" aria-selected="false" data-panel="preview">
+          المعاينة
+        </button>
+      </div>
+      <div class="workspace" data-panel="editor">
+        <aside class="editor glass" id="editor-panel">
+          <div class="editor-tabs" role="tablist" aria-label="خطوات الإنشاء">
+            <button data-editor="source" role="tab" aria-selected="true">
+              ١. النص</button
+            ><button data-editor="outline" role="tab" aria-selected="false">
+              ٢. المشاهد</button
+            ><button data-editor="design" role="tab" aria-selected="false">
+              ٣. المظهر
+            </button>
+          </div>
+          <section id="source-panel">
+            <label for="project-title">عنوان التجربة</label
+            ><input
+              id="project-title"
+              placeholder="عنوان يمنح الفكرة بداية"
+              dir="auto"
+            />
+            <div class="label-row">
+              <label for="source-text">ابدأ بكلماتك</label
+              ><span id="word-count">٠ كلمة</span>
+            </div>
+            <textarea
+              id="source-text"
+              rows="12"
+              placeholder="الصق مقالًا، أفكارًا، خطوات أو قصة…"
+              dir="auto"
+            ></textarea>
+            <p class="hint">
+              نحتفظ بالنص الأصلي كاملًا. العناوين والفقرات والقوائم تساعد على
+              تنظيم النتيجة.
+            </p>
+            <label class="check"
+              ><input type="checkbox" id="review-first" /> أراجع المخطط قبل
+              المعاينة</label
+            ><button id="generate" class="button primary full">
+              كوّن النص <span>↖</span></button
+            ><button id="local-ai" class="button secondary full">
+              إعادة صياغة بذكاء محلي
+            </button>
+            <p id="ai-status" class="hint">
+              التنسيق يعمل محليًا. جارٍ فحص دعم النموذج المحلي…
+            </p>
+            <details>
+              <summary>أمثلة للبداية</summary>
+              <div class="example-links">
+                <button data-example="article">مقال قصير</button
+                ><button data-example="steps">مراحل مشروع</button
+                ><button data-example="cards">قائمة أفكار</button>
+              </div>
+            </details>
+          </section>
+          <section id="outline-panel" hidden>
+            <div class="label-row">
+              <h2>مخطط تجربتك</h2>
+              <button id="add-scene" class="quiet">+ مشهد</button>
+            </div>
+            <p class="hint">
+              غيّر نوع كل مشهد أو رتّبه. المحتوى الطويل يُقسّم إلى مشاهد إضافية
+              دون حذف.
+            </p>
+            <div id="scene-list"></div>
+          </section>
+          <section id="design-panel" hidden>
+            <label for="format">طريقة العرض</label
+            ><select id="format">
+              <option value="article">صفحة قراءة مرنة</option>
+              <option value="cards">مجموعة بطاقات</option>
+              <option value="slides">سلايدات للعرض</option></select
+            ><label>الطابع الزجاجي</label>
+            <div class="theme-options">
+              <button data-theme="mist" aria-pressed="true">
+                <i class="mist"></i>ضباب</button
+              ><button data-theme="sand" aria-pressed="false">
+                <i class="sand"></i>رمل</button
+              ><button data-theme="olive" aria-pressed="false">
+                <i class="olive"></i>زيتون
+              </button>
+            </div>
+            <label for="motion-level">الحركة</label
+            ><select id="motion-level">
+              <option value="expressive">تعبيرية</option>
+              <option value="calm">هادئة</option>
+              <option value="none">بدون حركة</option></select
+            ><label for="content-dir">اتجاه المحتوى</label
+            ><select id="content-dir">
+              <option value="auto">تلقائي حسب النص</option>
+              <option value="rtl">من اليمين إلى اليسار</option>
+              <option value="ltr">من اليسار إلى اليمين</option>
+            </select>
+            <p class="hint">
+              كل قالب يتكيّف مع المحتوى. يمكنك تغيير تركيب كل مشهد من تبويب
+              المشاهد.
+            </p>
+          </section>
+        </aside>
+        <section class="preview-panel glass" id="preview-panel">
+          <div class="preview-bar">
+            <span><i class="live-dot"></i> معاينة حيّة</span>
+            <div>
+              <button id="preview-width" class="quiet" aria-pressed="false">
+                عرض الهاتف</button
+              ><button id="preview-open" class="quiet">توسيع ↗</button>
+            </div>
+          </div>
+          <div id="preview" class="preview theme-mist"></div>
+          <div class="preview-bottom">
+            <span id="scene-count"></span><span>تتكوّن من كلماتك</span>
+          </div>
+        </section>
+      </div>
+    </main>
+    <dialog id="viewer">
+      <div class="viewer-bar">
+        <strong>تكوين / وضع العرض</strong>
+        <div>
+          <button id="fullscreen" class="quiet">ملء الشاشة</button
+          ><button id="close-viewer" class="button secondary">
+            العودة للتحرير ×
+          </button>
+        </div>
+      </div>
+      <div id="view-content" class="preview"></div>
+    </dialog>
+    <dialog id="confirm">
+      <h2>استبدال المحتوى الحالي؟</h2>
+      <p>سيحل المثال محل التجربة الحالية. يمكنك التراجع بعد الاستبدال.</p>
+      <div class="toolbar">
+        <button id="cancel-confirm" class="button secondary">إلغاء</button
+        ><button id="accept-confirm" class="button primary">
+          تحميل المثال
+        </button>
+      </div>
+    </dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <footer>
+      <a href="#home" class="brand">تكوين</a><span>من كلمات إلى تجربة.</span
+      ><span>صُمّم لتبقى الفكرة لك.</span>
+    </footer>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

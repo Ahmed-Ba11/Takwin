@@ -1,10 +1,131 @@
-export const layouts={text:'نص تحريري',cover:'افتتاحية',card:'بطاقة فكرة',steps:'مرحلة',quote:'اقتباس',ending:'خاتمة'};
-export const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export const uid=()=>globalThis.crypto?.randomUUID?.()||`s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-export function direction(text,choice='auto'){return choice==='auto'?(/[\u0600-\u06ff]/.test(text)?'rtl':'ltr'):choice;}
+export const layouts = {
+  text: "نص تحريري",
+  cover: "افتتاحية",
+  card: "بطاقة فكرة",
+  steps: "مرحلة",
+  quote: "اقتباس",
+  ending: "خاتمة",
+};
+export const escapeHTML = (s) =>
+  String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+export const uid = () =>
+  globalThis.crypto?.randomUUID?.() ||
+  `s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+export function direction(text, choice = "auto") {
+  return choice === "auto"
+    ? /[\u0600-\u06ff]/.test(text)
+      ? "rtl"
+      : "ltr"
+    : choice;
+}
 // Slice at word boundaries, preserving every original character, including whitespace.
-export function splitText(text,budget=650){const out=[];let rest=text;while(rest.length>budget){let end=rest.lastIndexOf(' ',budget);if(end<budget/2)end=budget;if(end>0&&/[\uD800-\uDBFF]/.test(rest[end-1]))end--;out.push(rest.slice(0,end));rest=rest.slice(end);}if(rest)out.push(rest);return out;}
-export function parseText(source){if(!source.trim())return[];const groups=source.split(/(\n\s*\n)/);const scenes=[];for(let i=0;i<groups.length;i+=2){const raw=groups[i]+(groups[i+1]||'');if(!raw.trim())continue;const lines=raw.trim().split('\n');const list=lines.length>1&&lines.every(x=>/^\s*(?:[-*•]|[0-9٠-٩]+[.)ـ-])\s*/.test(x));const blocks=list?raw.match(/[^\n]*\n|[^\n]+$/g)||[raw]:[raw];for(const block of blocks){const type=/^\s*(?:[0-9٠-٩]+[.)ـ-]|المرحلة|الخطوة|خطوة|مرحلة)/.test(block)?'steps':/^\s*[-*•]/.test(block)?'card':/^\s*[«“">]/.test(block)?'quote':'text';for(const part of splitText(block)){scenes.push({id:uid(),title:'',body:part,layout:type});}}}if(scenes.length>1&&scenes[0].layout==='text')scenes[0].layout='cover';if(scenes.length>2&&scenes.at(-1).layout==='text')scenes.at(-1).layout='ending';return scenes;}
-export function paginate(scenes,format){return scenes.flatMap(s=>{if(format!=='slides')return[{...s}];return splitText(s.body,450).map((body,i)=>({...s,body,title:i?`${s.title||'متابعة'} · ${i+1}`:s.title}));});}
-export function renderDocument(state,index=0){const e=escapeHTML,parts=paginate(state.scenes,state.format),dir=direction(state.title+state.source,state.dir);const current=Math.max(0,Math.min(index,parts.length-1));if(!parts.length)return '<div class="document-heading"><span class="overline">YOUR NEXT POSSIBILITY</span><h2>هنا تتكوّن فكرتك.</h2><p>أضف نصًا أو اختر مثالًا لتبدأ.</p></div>';const shown=state.format==='slides'?[parts[current]]:parts;return `<div class="document format-${state.format}" dir="${dir}"><header class="document-heading"><span class="overline">TAKWEEN / FROM WORDS TO EXPERIENCES</span><h2>${e(state.title||'تجربة من كلماتك')}</h2></header><div class="scenes">${shown.map((s,i)=>{const lines=s.body.split('\n');const inferred=!s.title&&lines.length>1&&lines[0].trim().length<100&&lines[0].trim().length>0;const heading=s.title||(inferred?lines[0]:'');const body=inferred?lines.slice(1).join('\n'):s.body;return `<article class="scene layout-${layouts[s.layout]?s.layout:'text'}"><span class="scene-number">${String(state.format==='slides'?current+1:i+1).padStart(2,'0')}</span>${heading?`<h3 dir="auto">${e(heading)}</h3>`:''}<p dir="auto">${e(body)}</p></article>`}).join('')}</div>${state.format==='slides'?`<div class="slide-progress"><i style="width:${(current+1)/parts.length*100}%"></i></div><nav class="slide-controls" aria-label="التنقل بين الشرائح"><button data-step="-1" aria-label="الشريحة السابقة" ${current===0?'disabled':''}>${dir==='rtl'?'→':'←'}</button><span aria-live="polite">${current+1} / ${parts.length}</span><button data-step="1" aria-label="الشريحة التالية" ${current===parts.length-1?'disabled':''}>${dir==='rtl'?'←':'→'}</button></nav>`:''}</div>`;}
-export function validateProject(data){if(!data||typeof data!=='object'||!Array.isArray(data.scenes))throw Error('invalid project');return {title:String(data.title||''),source:String(data.source||''),format:['article','cards','slides'].includes(data.format)?data.format:'article',theme:['mist','sand','olive'].includes(data.theme)?data.theme:'mist',motion:['expressive','calm','none'].includes(data.motion)?data.motion:'expressive',dir:['auto','rtl','ltr'].includes(data.dir)?data.dir:'auto',scenes:data.scenes.filter(x=>x&&typeof x==='object').map(s=>({id:uid(),title:String(s.title||''),body:String(s.body||''),layout:layouts[s.layout]?s.layout:'text'}))};}
+export function splitText(text, budget = 650) {
+  const out = [];
+  let rest = text;
+  while (rest.length > budget) {
+    let end = rest.lastIndexOf(" ", budget);
+    if (end < budget / 2) end = budget;
+    if (end > 0 && /[\uD800-\uDBFF]/.test(rest[end - 1])) end--;
+    out.push(rest.slice(0, end));
+    rest = rest.slice(end);
+  }
+  if (rest) out.push(rest);
+  return out;
+}
+export function parseText(source) {
+  if (!source.trim()) return [];
+  const groups = source.split(/(\n\s*\n)/);
+  const scenes = [];
+  for (let i = 0; i < groups.length; i += 2) {
+    const raw = groups[i] + (groups[i + 1] || "");
+    if (!raw.trim()) continue;
+    const lines = raw.trim().split("\n");
+    const list =
+      lines.length > 1 &&
+      lines.every((x) => /^\s*(?:[-*•]|[0-9٠-٩]+[.)ـ-])\s*/.test(x));
+    const blocks = list ? raw.match(/[^\n]*\n|[^\n]+$/g) || [raw] : [raw];
+    for (const block of blocks) {
+      const type = /^\s*(?:[0-9٠-٩]+[.)ـ-]|المرحلة|الخطوة|خطوة|مرحلة)/.test(
+        block,
+      )
+        ? "steps"
+        : /^\s*[-*•]/.test(block)
+          ? "card"
+          : /^\s*[«“">]/.test(block)
+            ? "quote"
+            : "text";
+      for (const part of splitText(block)) {
+        scenes.push({ id: uid(), title: "", body: part, layout: type });
+      }
+    }
+  }
+  if (scenes.length > 1 && scenes[0].layout === "text")
+    scenes[0].layout = "cover";
+  if (scenes.length > 2 && scenes.at(-1).layout === "text")
+    scenes.at(-1).layout = "ending";
+  return scenes;
+}
+export function paginate(scenes, format) {
+  return scenes.flatMap((s) => {
+    if (format !== "slides") return [{ ...s }];
+    return splitText(s.body, 450).map((body, i) => ({
+      ...s,
+      body,
+      title: i ? `${s.title || "متابعة"} · ${i + 1}` : s.title,
+    }));
+  });
+}
+export function renderDocument(state, index = 0) {
+  const e = escapeHTML,
+    parts = paginate(state.scenes, state.format),
+    dir = direction(state.title + state.source, state.dir);
+  const current = Math.max(0, Math.min(index, parts.length - 1));
+  if (!parts.length)
+    return '<div class="document-heading"><span class="overline">YOUR NEXT POSSIBILITY</span><h2>هنا تتكوّن فكرتك.</h2><p>أضف نصًا أو اختر مثالًا لتبدأ.</p></div>';
+  const shown = state.format === "slides" ? [parts[current]] : parts;
+  return `<div class="document format-${state.format}" dir="${dir}"><header class="document-heading"><span class="overline">TAKWEEN / FROM WORDS TO EXPERIENCES</span><h2>${e(state.title || "تجربة من كلماتك")}</h2></header><div class="scenes">${shown
+    .map((s, i) => {
+      const lines = s.body.split("\n");
+      const inferred =
+        !s.title &&
+        lines.length > 1 &&
+        lines[0].trim().length < 100 &&
+        lines[0].trim().length > 0;
+      const heading = s.title || (inferred ? lines[0] : "");
+      const body = inferred ? lines.slice(1).join("\n") : s.body;
+      return `<article class="scene layout-${layouts[s.layout] ? s.layout : "text"}"><span class="scene-number">${String(state.format === "slides" ? current + 1 : i + 1).padStart(2, "0")}</span>${heading ? `<h3 dir="auto">${e(heading)}</h3>` : ""}<p dir="auto">${e(body)}</p></article>`;
+    })
+    .join(
+      "",
+    )}</div>${state.format === "slides" ? `<div class="slide-progress"><i style="width:${((current + 1) / parts.length) * 100}%"></i></div><nav class="slide-controls" aria-label="التنقل بين الشرائح"><button data-step="-1" aria-label="الشريحة السابقة" ${current === 0 ? "disabled" : ""}>${dir === "rtl" ? "→" : "←"}</button><span aria-live="polite">${current + 1} / ${parts.length}</span><button data-step="1" aria-label="الشريحة التالية" ${current === parts.length - 1 ? "disabled" : ""}>${dir === "rtl" ? "←" : "→"}</button></nav>` : ""}</div>`;
+}
+export function validateProject(data) {
+  if (!data || typeof data !== "object" || !Array.isArray(data.scenes))
+    throw Error("invalid project");
+  return {
+    title: String(data.title || ""),
+    source: String(data.source || ""),
+    format: ["article", "cards", "slides"].includes(data.format)
+      ? data.format
+      : "article",
+    theme: ["mist", "sand", "olive"].includes(data.theme) ? data.theme : "mist",
+    motion: ["expressive", "calm", "none"].includes(data.motion)
+      ? data.motion
+      : "expressive",
+    dir: ["auto", "rtl", "ltr"].includes(data.dir) ? data.dir : "auto",
+    scenes: data.scenes
+      .filter((x) => x && typeof x === "object")
+      .map((s) => ({
+        id: uid(),
+        title: String(s.title || ""),
+        body: String(s.body || ""),
+        layout: layouts[s.layout] ? s.layout : "text",
+      })),
+  };
+}
