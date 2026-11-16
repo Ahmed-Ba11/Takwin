@@ -9,6 +9,6 @@ The static build needs no paid server or API key. GitHub Pages is available free
 
 Expected default URL: https://ahmed-ba11.github.io/Takwin/ (not a claim of successful deployment).
 
-Workflow is manual so changes do not auto-publish. `npm run build` copies the five static application files into dist; only dist is published. No npm dependencies, inference runtime, model downloads or Hugging Face access are required. Source references, raw font files, tests and local artifacts are excluded.
+The workflow can be started manually and also runs when its own configuration is pushed to main. Ordinary application commits do not auto-publish. Pages enablement is attempted using the workflow token; if repository administration or plan restrictions prevent it, the repository owner must enable Pages in Settings. `npm run build` copies the five static application files into dist; only dist is published. No npm dependencies, inference runtime, model downloads or Hugging Face access are required. Source references, raw font files, tests and local artifacts are excluded.
 
 The user removed AI from the product scope. Network access to GitHub API/live hosting may still be needed to execute and verify deployment from the cloud environment. No deployment is implied by a code push.
