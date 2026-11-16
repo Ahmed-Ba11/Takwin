@@ -5,11 +5,13 @@ Arabic-first, local text-to-visual studio. Glass surfaces, warm backgrounds, Thm
 ## Run
 
 ```sh
+npm ci --ignore-scripts
+npm run build
 npm start
 # http://127.0.0.1:4318
 ```
 
-No install or backend required. `index.html`, `app.js`, `core.js`, `styles.css`, and `fonts.css` are the application. Serve over HTTP rather than opening the module-based editor with file://.
+No backend required. Install/build are needed for the optional on-device model worker. `index.html`, `app.js`, `core.js`, `styles.css`, and `fonts.css` are the application. Serve over HTTP rather than opening the module-based editor with file://.
 
 ## Verification
 
@@ -24,7 +26,7 @@ Browser suites require Python Playwright, `/usr/bin/chromium`, `pdffonts`, `pdfi
 
 ## Local intelligence
 
-Paragraph/list/step recognition runs locally without network or arbitrary eight-scene/350-character limits. It is rule-based, not semantic AI. Optional rewriting uses the browser's on-device `LanguageModel` API only if Arabic input/output are supported. It may require a browser-managed model download. No remote AI fallback exists. The current managed Chromium does not offer a usable Arabic model; rewriting is disabled honestly. This requirement remains limited by model/browser availability.
+Paragraph/list/step recognition runs locally without network or arbitrary eight-scene/350-character limits. It is rule-based, not semantic AI. Optional experimental rewriting uses a bundled Transformers.js worker and a Qwen2.5 model running locally with WASM. Initial model download requires explicit confirmation. No remote AI fallback exists. Download/inference is blocked by the current environment network policy and remains unverified. See `docs/DEPLOY.md`.
 
 ## Export
 

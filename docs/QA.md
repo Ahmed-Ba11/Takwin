@@ -25,3 +25,11 @@ The managed browser blocks file:// and data: top-level navigation. The exported 
 - Arabic interface is active; English and mixed content work. The old bilingual UI remains in the unchanged reference prototype, not in the new editor.
 - Browser printing can vary with user print settings. Animated PDF is not supported.
 - GitHub code upload and public site deployment are separate. No public deployment is claimed by this report.
+
+## Follow-up: local model and Pages preparation — 2026-11-16
+
+Added a browser-only Transformers.js 4.3.2 worker with Qwen2.5-0.5B-Instruct, opt-in download, progress and cancellation. This replaces the unsupported browser LanguageModel API path described above. The static build succeeds and ships its WASM runtime from the same origin. npm audit reports zero known vulnerabilities in the locked dependency tree at this check.
+
+Five real-worker failure-path assertions pass: worker loads, attempts Hugging Face model assets, failure preserves source and preview, and source text is absent from network URLs/request bodies. These do NOT validate inference or Arabic quality; model download remains blocked by runtime networking. The 45 browser assertions and 27 export assertions were rerun successfully after integration.
+
+The GitHub Pages workflow is prepared for manual execution after inference/live acceptance verification. GitHub API and the expected live URL are also blocked by runtime network policy. No successful public deployment is claimed. See DEPLOY.md for the concrete unblock steps.

@@ -33,3 +33,7 @@ Unit tests + real Chromium flows + responsive screen matrix + export parity + ac
 ## Known requirement gaps
 
 Semantic Arabic AI is not available in the current browser. The optional local browser-model path is implemented but cannot be truthfully marked end-to-end verified here. No remote service is used. There is no physical-device Safari/Android testing. PDF motion is not supported by the format; standalone HTML is the animated alternative.
+
+## Follow-up iteration
+
+Requirement: finish local intelligence before free hosting. Implemented bundled browser worker rather than requiring the experimental browser API. Explicit opt-in acknowledges model download size; cancellation/failure preserve user work. Upgraded the initial library after npm audit identified a high-severity transitive dependency; locked replacement reports zero known vulnerabilities. Build and regression checks pass. End-to-end inference/quality and deployment verification remain externally blocked by network policy; prepared manual Pages workflow without claiming publication.
