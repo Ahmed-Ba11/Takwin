@@ -17,3 +17,7 @@ HTML-like source with closing script tags and event handlers remains literal tex
 ## Limits
 
 No security audit can prove absence of all vulnerabilities. No independent penetration test or formal WCAG audit was performed. Generated HTML intentionally contains the minimal first-party JavaScript required for motion/navigation; PDF is the static alternative. Previously supplied `legacy-v3.html` is reference material, not covered by the new-app audit.
+
+## No-AI revision
+
+Removed model downloads and all npm dependencies from the application. The static publication build is restricted to index.html, app.js, core.js, styles.css, fonts.css. A browser regression verifies that generation makes no external requests. Existing text escaping and standalone-export protections remain and their tests pass.

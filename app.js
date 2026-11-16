@@ -23,9 +23,7 @@ let state = {
   index = 0,
   viewerIndex = 0,
   pendingExample = null,
-  saveTimer,
-  aiSession,
-  aiAvailable = false;
+  saveTimer;
 const examples = {
   article: {
     title: "فن الانتباه للأشياء الصغيرة",
@@ -456,79 +454,6 @@ async function exportProject(pdf = false) {
 }
 $("#export").onclick = () => exportProject(false);
 $("#pdf").onclick = () => exportProject(true);
-let localBusy = false;
-let localCancelled = false;
-async function checkAI() {
-  aiAvailable =
-    typeof Worker !== "undefined" && typeof WebAssembly !== "undefined";
-  $("#local-ai").disabled = !aiAvailable;
-  $("#ai-status").textContent = aiAvailable
-    ? "إعادة صياغة محلية تجريبية. تتطلب تنزيل نموذج بحجم مئات الميغابايت أول مرة؛ لا يُرسل نصك للخادم."
-    : "المعالجة المحلية غير مدعومة في هذا المتصفح. التنسيق متاح.";
-}
-$("#local-ai").onclick = async () => {
-  if (localBusy) {
-    localCancelled = true;
-    (await import("./local-ai.js")).cancelLocalAI();
-    return;
-  }
-  if (!state.source.trim()) {
-    notify("أضف النص أولًا.");
-    return;
-  }
-  if (
-    !window.confirm(
-      "سيتم تنزيل نموذج لغوي على جهازك (مئات الميغابايت) وقد تكون المعالجة بطيئة، خصوصًا على الهاتف. النص لا يُرسل للخادم. النتيجة تجريبية وتحتاج مراجعة. هل تريد المتابعة؟",
-    )
-  )
-    return;
-  localBusy = true;
-  localCancelled = false;
-  const btn = $("#local-ai");
-  btn.textContent = "إلغاء المعالجة";
-  const source = state.source;
-  try {
-    const { rewriteLocal } = await import("./local-ai.js");
-    const { splitText } = await import("./core.js");
-    const chunks = splitText(source, 1800),
-      result = [];
-    for (let i = 0; i < chunks.length; i++) {
-      if (localCancelled) throw Error("cancelled");
-      $("#ai-status").textContent =
-        `معالجة على جهازك: ${i + 1} / ${chunks.length}`;
-      result.push(
-        await rewriteLocal(chunks[i], (p) => {
-          $("#ai-status").textContent =
-            p.status === "progress"
-              ? `تنزيل ملفات النموذج: ${Math.round(p.progress || 0)}٪`
-              : "جارٍ تجهيز النموذج على جهازك…";
-        }),
-      );
-    }
-    if (state.source !== source || localCancelled) throw Error("changed");
-    snapshot();
-    state.scenes = parseText(result.join("\n\n"));
-    outline();
-    paint();
-    save();
-    editorTab("outline");
-    panel("editor");
-    notify("راجع الصياغة الجديدة. النص الأصلي محفوظ كاملًا في تبويب النص.");
-    $("#ai-status").textContent =
-      "اكتملت المعالجة المحلية. راجع المعنى قبل المشاركة.";
-  } catch {
-    notify(
-      localCancelled
-        ? "أُلغيت المعالجة دون تغيير محتواك."
-        : "تعذّر تنزيل النموذج أو تشغيله. لم يتغير المحتوى؛ التنسيق المحلي متاح.",
-    );
-    $("#ai-status").textContent =
-      "المعالجة لم تكتمل. يمكنك إعادة المحاولة أو استخدام التنسيق المحلي.";
-  } finally {
-    localBusy = false;
-    btn.textContent = "إعادة صياغة بذكاء محلي";
-  }
-};
 window.addEventListener("hashchange", route);
 window.addEventListener("pagehide", () => {
   try {
@@ -538,4 +463,3 @@ window.addEventListener("pagehide", () => {
 restore();
 sync();
 route();
-checkAI();

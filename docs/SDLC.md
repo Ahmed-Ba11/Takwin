@@ -37,3 +37,7 @@ Semantic Arabic AI is not available in the current browser. The optional local b
 ## Follow-up iteration
 
 Requirement: finish local intelligence before free hosting. Implemented bundled browser worker rather than requiring the experimental browser API. Explicit opt-in acknowledges model download size; cancellation/failure preserve user work. Upgraded the initial library after npm audit identified a high-severity transitive dependency; locked replacement reports zero known vulnerabilities. Build and regression checks pass. End-to-end inference/quality and deployment verification remain externally blocked by network policy; prepared manual Pages workflow without claiming publication.
+
+## Scope revision: no AI — 2026-11-16
+
+The user removed AI from the requirements. Removed the model button, progress UI, worker/client, model downloads, dependencies and obsolete failure-path tests. Local deterministic formatting, scene editing, presentation and exports remain. Build now copies only five static application files and has no npm dependencies. Pages preparation no longer depends on model access or inference testing. Historical AI limitations above do not apply to this revised scope.

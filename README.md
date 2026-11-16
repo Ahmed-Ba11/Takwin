@@ -5,13 +5,12 @@ Arabic-first, local text-to-visual studio. Glass surfaces, warm backgrounds, Thm
 ## Run
 
 ```sh
-npm ci --ignore-scripts
 npm run build
 npm start
 # http://127.0.0.1:4318
 ```
 
-No backend required. Install/build are needed for the optional on-device model worker. `index.html`, `app.js`, `core.js`, `styles.css`, and `fonts.css` are the application. Serve over HTTP rather than opening the module-based editor with file://.
+No backend or npm dependencies required. Build simply copies the static application into dist/. `index.html`, `app.js`, `core.js`, `styles.css`, and `fonts.css` are the application. Serve over HTTP rather than opening the module-based editor with file://.
 
 ## Verification
 
@@ -24,9 +23,9 @@ python tests/screens.py
 
 Browser suites require Python Playwright, `/usr/bin/chromium`, `pdffonts`, `pdfinfo`. Artifacts go to ignored `.test-artifacts/`. See `docs/QA.md` for observed results and limits.
 
-## Local intelligence
+## Local formatting
 
-Paragraph/list/step recognition runs locally without network or arbitrary eight-scene/350-character limits. It is rule-based, not semantic AI. Optional experimental rewriting uses a bundled Transformers.js worker and a Qwen2.5 model running locally with WASM. Initial model download requires explicit confirmation. No remote AI fallback exists. Download/inference is blocked by the current environment network policy and remains unverified. See `docs/DEPLOY.md`.
+Paragraph/list/step recognition runs locally with deterministic rules, without AI, model downloads, API keys, or external requests. The original text is preserved. There are no arbitrary eight-scene/350-character truncation limits. Users control scene layout and ordering.
 
 ## Export
 

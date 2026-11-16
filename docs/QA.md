@@ -33,3 +33,7 @@ Added a browser-only Transformers.js 4.3.2 worker with Qwen2.5-0.5B-Instruct, op
 Five real-worker failure-path assertions pass: worker loads, attempts Hugging Face model assets, failure preserves source and preview, and source text is absent from network URLs/request bodies. These do NOT validate inference or Arabic quality; model download remains blocked by runtime networking. The 45 browser assertions and 27 export assertions were rerun successfully after integration.
 
 The GitHub Pages workflow is prepared for manual execution after inference/live acceptance verification. GitHub API and the expected live URL are also blocked by runtime network policy. No successful public deployment is claimed. See DEPLOY.md for the concrete unblock steps.
+
+## Revised scope without AI — 2026-11-16
+
+AI is removed at the user's request; historical model blockers no longer apply. Reran 6 unit tests, 45 browser assertions, 27 export parity assertions, 56 responsive/interaction assertions, and all three long-PDF scenarios successfully. Added `tests/no_ai.py`: confirms that the publication build contains exactly the five application files, package lock has no dependencies, model controls are absent, source text remains intact, generation works from a subdirectory, and no external requests or JavaScript errors occur in that flow. The source and build contain no model worker or inference runtime. This revision has not been publicly deployed.
