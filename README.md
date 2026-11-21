@@ -1,42 +1,24 @@
-# تكوين — Takween Studio
+# تكوين (Takween)
 
-Arabic-first, local text-to-visual studio. Glass surfaces, warm backgrounds, Thmanyah typography, editable scene structures, article/cards/slides views, standalone animated HTML and browser PDF export.
+اكتب نصّك، واختر الشكل (ملخّص · بطاقات · مقال)، واحفظه PDF بالتنسيق نفسه.
+موقع ثابت بالعربية، يعمل على الجهاز بلا خادم ولا ذكاء اصطناعي ولا اتصال.
 
-## Run
-
-```sh
-npm run build
-npm start
-# http://127.0.0.1:4318
+## التشغيل
+```
+npm start      # http://127.0.0.1:4318 (خادم Node؛ خادم Python يقتطع fonts.css على Windows)
+npm test       # اختبارات المحلّل والأشكال
+npm run build  # ينسخ الموقع إلى dist/
 ```
 
-No backend or npm dependencies required. Build simply copies the static application into dist/. `index.html`, `app.js`, `core.js`, `styles.css`, and `fonts.css` are the application. Serve over HTTP rather than opening the module-based editor with file://.
+## الملفات
+- `core.js` — محلّل النص (`parseBlocks`) والأشكال الثلاثة (`renderDocument` للشاشة، `renderPdfModel` لل PDF).
+- `app.js` — الواجهة: الرئيسية، مساحة الكتابة، الحفظ التلقائي، المعاينة الحيّة.
+- `pdf.js` — تصدير PDF من المتصفح: صفحات A4 ثابتة خارج الشاشة، ترقيم حسب الكتل، ثم html2canvas + jsPDF.
+- `vendor/` — html2canvas 1.4.1 (MIT) و jsPDF 2.5.1 (MIT) منسوخان محليًا مع رخصتيهما.
+- `fonts.css` — خطوط ثمانية مضمّنة (لا تُعاد توليدها). `legacy-v3.html` نموذج قديم.
 
-## Verification
+## الصياغة المدعومة
+`# عنوان` · `- نقطة` · `1. خطوة` · `> اقتباس` · سطر يبدأ برقم أو نسبة (`85% من …`) يصبح رقمًا بارزًا. لا يُحذف أي نص.
 
-```sh
-npm test
-python tests/browser.py
-python tests/export_parity.py
-python tests/screens.py
-```
-
-Browser suites require Python Playwright, `/usr/bin/chromium`, `pdffonts`, `pdfinfo`. Artifacts go to ignored `.test-artifacts/`. See `docs/QA.md` for observed results and limits.
-
-## Local formatting
-
-Paragraph/list/step recognition runs locally with deterministic rules, without AI, model downloads, API keys, or external requests. The original text is preserved. There are no arbitrary eight-scene/350-character truncation limits. Users control scene layout and ordering.
-
-## Export
-
-- HTML: embedded fonts/styles, original source and editable project data, shared render function, local navigation/motion. No external assets or network dependency. Original source is included: review it before sharing.
-- PDF: opens a print window containing all scenes. Choose Save as PDF, enable background graphics, and disable browser headers/footers. PDF is static and cannot preserve HTML/CSS animation. It uses the same content and fonts, with A4 pagination; paper layout is not pixel-identical to every responsive viewport.
-- Data remains in the current browser's localStorage. Quota failures are surfaced. HTML download is the portable backup.
-
-## Fonts
-
-The user supplied and authorized the Thmanyah family. Four original WOFF2 files are embedded byte-for-byte in the generated `fonts.css`; individual binaries are excluded from Git. SHA-256 values are recorded in `docs/font-hashes.json`. Rebuilding requires the original files in ignored `thmanyah/`, followed by `python build_fonts.py`. Embedding is packaging, not encryption or prevention of extraction. No claim of sponsorship by the typeface owner.
-
-## Scope
-
-The active UI is Arabic; Arabic, English and mixed content and manual RTL/LTR direction are supported. The previous bilingual v3 prototype is preserved unchanged as `legacy-v3.html`, outside the active application. No accounts, cloud publication, analytics, backend, or third-party scripts are used. Push to GitHub does not itself publish GitHub Pages.
+## PDF
+يُنشأ في المتصفح دون نافذة منبثقة أو حوار طباعة. الصفحات صور عالية الدقة (×2) بالخطوط والألوان نفسها؛ النص داخل الملف غير قابل للتحديد. على الجوال تُستعمل `navigator.share` إن توفّرت وإلا يُنزَّل الملف.
