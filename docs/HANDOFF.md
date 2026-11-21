@@ -12,10 +12,14 @@ Simple clear MSA copy everywhere (no slogans, no English decorative labels); NO 
 - `styles.css`: shared rules for `.preview` and `.pdf-page` (no backdrop-filter inside cards, so PDF = preview).
 - html2canvas gotchas: no `::marker`, no CSS `counter()` content → use explicit `.n` spans; no inset shadows.
 
+## Round 2 (done)
+Block editor (`blocks.js`, `editor.js`): contenteditable row per block, source still plain markup (`??`/`!!` = card front/back). Flip cards (`.fc`, 3D) + `study.js`. SVG logo, back button, View Transitions, scroll reveal, «ترتيب سريع» (`arrange`). RTL: Arabic-Indic digits + isolated ٪ (`localDigits`). html2canvas cannot do 3D flips, so PDF cards print front above back (`.fc-print`).
+
 ## State
 Home, workspace (desktop + 375px), 3 forms × 3 themes and PDF export verified (see docs/QA.md). Not verified: real iOS/Safari, share sheet.
 
 ## TODO (priority)
+0. Real-device test of the block editor (Android/iOS keyboards, IME, `beforeinput` Enter/Backspace), study swipe on touch.
 1. Test on a real phone (iOS Safari + Android Chrome): download/share, memory on long texts.
 2. Cards PDF wastes space when card heights differ (grid rows); consider masonry/column packing.
 3. Summary hoists stats away from their section; consider keeping order.

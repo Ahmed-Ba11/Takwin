@@ -514,3 +514,4 @@ body { overflow-x: clip; }
 .workspace-view { overflow-x: clip; }
 .study-count, .fc-face .num, .card .num, .n, .stat b, .bigv { unicode-bidi: isolate; }
 .study-count { direction: ltr; }
+@media (max-width: 900px) { .editor { overflow: visible; } }
