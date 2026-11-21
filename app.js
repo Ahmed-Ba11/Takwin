@@ -1,465 +1,299 @@
-import {
-  layouts,
-  escapeHTML as e,
-  uid,
-  parseText,
-  paginate,
-  direction,
-  renderDocument,
-  validateProject,
-} from "./core.js";
-const $ = (s) => document.querySelector(s),
-  $$ = (s) => [...document.querySelectorAll(s)];
-let state = {
-    title: "",
-    source: "",
-    scenes: [],
-    format: "article",
-    theme: "mist",
-    motion: "expressive",
-    dir: "auto",
-  },
-  history = [],
-  index = 0,
-  viewerIndex = 0,
-  pendingExample = null,
-  saveTimer;
-const examples = {
-  article: {
-    title: "فن الانتباه للأشياء الصغيرة",
-    format: "article",
-    source:
-      "في يومٍ مزدحم، قد تمرّ التفاصيل الجميلة دون أن نراها. ضوء الصباح على النافذة، حديث عابر، أو صفحة تمنحنا فكرة جديدة. الانتباه ليس وقتًا إضافيًا نحتاجه، بل طريقة مختلفة لرؤية الوقت الذي نملكه.\n\n«ليست كل الأشياء المهمة كبيرة. بعض المعاني تختبئ في التفاصيل.»\n\nمساحة صغيرة للتأمل\nامنح نفسك دقائق بلا إشعارات. اختر شيئًا حولك وتأمله: لونه، ملمسه، وما يذكّرك به. حين نبطئ قليلًا، نرى أكثر.\n\n- دوّن تفصيلًا أسعدك اليوم.\n- شارك فكرة لطيفة مع شخص تحبه.\n- اترك مساحة لشيء غير مخطط له.\n\nقد لا يتغير اليوم كله، لكن علاقتك به ستتغير. وهذه بداية تستحق الاهتمام.",
-  },
-  steps: {
-    title: "من فكرة صغيرة إلى مشروع حيّ",
-    format: "slides",
-    source:
-      "١. اكتشف السؤال\nابدأ بما يحتاجه الناس فعلًا. راقب، واسأل، واجمع الملاحظات قبل أن تتعلق بحل واحد.\n\n٢. ارسم الاحتمالات\nضع أفكارك أمامك. جرّب أكثر من اتجاه، واختر الفكرة التي تجيب عن السؤال بوضوح.\n\n٣. اصنع نسخة بسيطة\nحوّل الفكرة إلى تجربة يمكن لمسها واختبارها. يكفي أن تشرح جوهر الحل.\n\n٤. اختبر وتعلّم\nراقب استخدام الناس للتجربة. استمع إلى ما يصعب عليهم، ودوّن ما يحتاج إلى تغيير.\n\n٥. حسّن ثم انطلق\nكل تجربة تمنحك معرفة جديدة. طوّر المشروع تدريجيًا، واحتفظ بالسؤال الأول قريبًا منك.",
-  },
-  cards: {
-    title: "مساحة لأفكار أفضل",
-    format: "cards",
-    source:
-      "- اسأل قبل أن تفترض. السؤال الجيد يفتح احتمالات لم تكن تراها.\n- اكتب قبل أن تنسى. الأفكار الصغيرة تستحق مكانًا تحفظ فيه.\n- جرّب قبل أن تحكم. التجربة البسيطة تعلّمك أكثر من التوقع.\n- شارك قبل أن تكتمل. وجهة نظر أخرى قد تكشف ما ينقص الفكرة.\n- استرح لتعود. بعض الحلول تظهر عندما تمنح ذهنك مساحة.",
-  },
+import { renderDocument, examples, sanitizeState, countWords, forms } from "./core.js";
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const KEY = "takween-v5";
+const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+
+let state = sanitizeState(null);
+try {
+  state = sanitizeState(JSON.parse(localStorage.getItem(KEY)));
+} catch {}
+
+const el = {
+  title: $("#title"),
+  source: $("#source"),
+  preview: $("#preview"),
+  count: $("#count"),
+  status: $("#save-status"),
+  toast: $("#toast"),
+  workspace: $(".workspace"),
 };
-function notify(message) {
-  $("#toast").textContent = message;
-  $("#toast").classList.add("show");
-  clearTimeout(notify.timer);
-  notify.timer = setTimeout(() => $("#toast").classList.remove("show"), 4500);
+
+/* ---------- Views ---------- */
+function route() {
+  const write = location.hash === "#write";
+  $("#home").hidden = write;
+  $("#write").hidden = !write;
+  if (write) render({ enter: true });
+  else window.scrollTo(0, 0);
 }
-function snapshot() {
-  history.push(structuredClone(state));
-  if (history.length > 30) history.shift();
-  $("#undo").disabled = false;
+addEventListener("hashchange", route);
+
+/* ---------- Rendering ---------- */
+const motionOn = () => state.motion && !reduced.matches;
+function setTheme(node) {
+  node.className = node.className.replace(/\btheme-\w+/g, "").trim() + ` theme-${state.theme}`;
 }
+function emptyState() {
+  return `<div class="empty"><h2>ابدأ بكتابة نصّك</h2><p>اكتب في الحقل، أو جرّب أحد الأمثلة.</p><div class="empty-actions"><button data-example="summary">مثال ملخّص</button><button data-example="cards">مثال بطاقات</button><button data-example="article">مثال مقال</button></div></div>`;
+}
+function openState() {
+  return {
+    cards: $$(".card[data-open]", el.preview).map((c) => c.dataset.open),
+    secs: $$(".sec", el.preview).map((c) => c.dataset.open),
+  };
+}
+function applyOpen(saved) {
+  $$(".card[data-open]", el.preview).forEach((c, i) => saved.cards[i] && setOpen(c, saved.cards[i] === "true"));
+  $$(".sec", el.preview).forEach((c, i) => saved.secs[i] && setOpen(c, saved.secs[i] === "true"));
+}
+function setOpen(node, open) {
+  node.dataset.open = String(open);
+  node.querySelector("button[aria-expanded]")?.setAttribute("aria-expanded", String(open));
+}
+let lastHTML = "";
+function render({ enter = false, switching = false } = {}) {
+  setTheme(el.preview);
+  document.body.classList.toggle("motion-off", !motionOn());
+  const html = state.source.trim() || state.title.trim() ? renderDocument(state) : "";
+  if (html === lastHTML && !enter && !switching) return;
+  lastHTML = html;
+  const saved = switching ? { cards: [], secs: [] } : openState();
+  el.preview.classList.remove("enter", "switching");
+  el.preview.innerHTML = html || emptyState();
+  if (html) {
+    $$(".units > *", el.preview).forEach((n, i) => n.style.setProperty("--i", Math.min(i, 10)));
+    el.preview.classList.add("instant");
+    applyOpen(saved);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.preview.classList.remove("instant")));
+    if (html && !$(".doc-tools", el.preview) && $(".card[data-open], .sec", el.preview))
+      $(".document", el.preview).insertAdjacentHTML(
+        "afterbegin",
+        '<div class="doc-tools"><button type="button" data-toggle-all>فتح الكل</button></div>',
+      );
+    syncToggleLabel();
+  }
+  if (motionOn() && (enter || switching)) el.preview.classList.add(switching ? "switching" : "enter");
+  if (enter && switching) el.preview.classList.add("enter");
+}
+function syncToggleLabel() {
+  const b = $("[data-toggle-all]", el.preview);
+  if (!b) return;
+  const all = $$(".card[data-open], .sec", el.preview);
+  b.textContent = all.every((c) => c.dataset.open === "true") ? "طيّ الكل" : "فتح الكل";
+}
+
+el.preview.addEventListener("click", (e) => {
+  const ex = e.target.closest("[data-example]");
+  if (ex) return loadExample(ex.dataset.example);
+  if (e.target.closest("[data-toggle-all]")) {
+    const all = $$(".card[data-open], .sec", el.preview);
+    const open = !all.every((c) => c.dataset.open === "true");
+    all.forEach((c) => setOpen(c, open));
+    return syncToggleLabel();
+  }
+  const head = e.target.closest(".card[data-open], .sec-head");
+  if (head) {
+    const box = head.closest(".card, .sec");
+    setOpen(box, box.dataset.open !== "true");
+    syncToggleLabel();
+    return;
+  }
+  const go = e.target.closest("[data-goto]");
+  if (go) {
+    e.preventDefault();
+    const sec = document.getElementById(go.dataset.goto);
+    if (!sec) return;
+    setOpen(sec, true);
+    sec.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
+  }
+});
+
+/* ---------- State + autosave ---------- */
+let saveTimer, renderTimer;
 function save() {
   clearTimeout(saveTimer);
-  $("#save-status").textContent = "جارٍ الحفظ…";
   saveTimer = setTimeout(() => {
     try {
-      localStorage.setItem("takween-v4", JSON.stringify(state));
-      $("#save-status").textContent = "محفوظ على هذا المتصفح";
+      localStorage.setItem(KEY, JSON.stringify(state));
+      el.status.textContent = "تم الحفظ على جهازك";
     } catch {
-      $("#save-status").textContent = "تعذّر الحفظ؛ نزّل HTML لحفظ نسخة";
+      el.status.textContent = "تعذّر الحفظ على الجهاز";
     }
-  }, 350);
+  }, 400);
 }
-function restore() {
+function changed() {
+  const words = countWords(state.source);
+  el.count.textContent = words ? `${words} كلمة` : "";
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 120);
+  save();
+}
+el.title.addEventListener("input", () => ((state.title = el.title.value), changed()));
+el.source.addEventListener("input", () => ((state.source = el.source.value), changed()));
+
+function syncControls() {
+  el.title.value = state.title;
+  el.source.value = state.source;
+  $$("#form-switch [data-form]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.form === state.form)));
+  $$("[data-theme]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.theme === state.theme)));
+  $("#motion").checked = state.motion;
+  el.count.textContent = countWords(state.source) ? `${countWords(state.source)} كلمة` : "";
+}
+
+$("#form-switch").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-form]");
+  if (!b || b.dataset.form === state.form) return;
+  state.form = b.dataset.form;
+  syncControls();
+  render({ switching: true });
+  save();
+});
+$("#look").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-theme]");
+  if (!b) return;
+  state.theme = b.dataset.theme;
+  syncControls();
+  render();
+  save();
+});
+$("#motion").addEventListener("change", (e) => {
+  state.motion = e.target.checked;
+  render();
+  save();
+});
+document.addEventListener("click", (e) => {
+  const look = $("#look");
+  if (look.open && !look.contains(e.target)) look.open = false;
+});
+
+/* ---------- Editor helpers ---------- */
+function replaceAll(text) {
+  el.source.focus();
+  el.source.select();
+  if (!document.execCommand("insertText", false, text)) {
+    el.source.value = text;
+    el.source.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+function loadExample(name) {
+  const ex = examples[name];
+  if (!ex) return;
+  state.title = ex.title;
+  state.form = ex.form;
+  el.title.value = ex.title;
+  replaceAll(ex.source);
+  state.source = el.source.value;
+  syncControls();
+  render({ switching: true });
+  save();
+  if (innerWidth <= 900) setPanel("preview");
+}
+$(".markup").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-mark]");
+  if (!b) return;
+  const ta = el.source;
+  const mark = b.dataset.mark;
+  ta.focus();
+  const v = ta.value;
+  const a = v.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+  let z = v.indexOf("\n", ta.selectionEnd);
+  if (z < 0) z = v.length;
+  const lines = v.slice(a, z).split("\n");
+  const stripped = lines.map((l) => l.replace(/^\s*(?:#{1,3}\s*|[-*•]\s+|[0-9٠-٩]+[.)]\s+|>\s?)/, ""));
+  const out = stripped
+    .map((l, i) => (mark === "1. " ? `${i + 1}. ` : mark) + l)
+    .join("\n");
+  ta.setSelectionRange(a, z);
+  if (!document.execCommand("insertText", false, out)) ta.setRangeText(out, a, z, "end");
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+});
+$("#undo").addEventListener("click", () => {
+  el.source.focus();
+  document.execCommand("undo");
+});
+
+/* ---------- Mobile panels ---------- */
+function setPanel(p) {
+  el.workspace.dataset.panel = p;
+  $$(".mobile-tabs [data-panel]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.panel === p)));
+  if (p === "preview") render();
+}
+$(".mobile-tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-panel]");
+  if (b) setPanel(b.dataset.panel);
+});
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function toast(msg, ms = 4200) {
+  el.toast.textContent = msg;
+  el.toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.toast.classList.remove("show"), ms);
+}
+
+/* ---------- PDF ---------- */
+let exporting = false;
+async function savePdf() {
+  if (exporting) return;
+  if (!state.source.trim() && !state.title.trim()) return toast("اكتب نصًّا أولًا ثم احفظه.");
+  exporting = true;
+  const btns = [$("#pdf"), $("#pdf-mobile")];
+  btns.forEach((b) => (b.disabled = true));
   try {
-    const saved = localStorage.getItem("takween-v4");
-    if (saved) {
-      state = validateProject(JSON.parse(saved));
-      return;
-    }
-    const old = JSON.parse(localStorage.getItem("takween-v1") || "null");
-    if (old && Array.isArray(old.items)) {
-      state.title = String(old.projectTitle || "");
-      state.scenes = old.items.map((x) => ({
-        id: uid(),
-        title: String(x.title || ""),
-        body: String(x.desc || ""),
-        layout: "card",
-      }));
-      state.source = state.scenes
-        .map((x) => x.title + "\n" + x.body)
-        .join("\n\n");
-      state.format =
-        old.format === "story"
-          ? "slides"
-          : old.format === "cards"
-            ? "cards"
-            : "article";
-    }
-  } catch {
-    notify("تعذّر استعادة النسخة المحفوظة. يمكنك بدء تجربة جديدة.");
-  }
-}
-function count() {
-  const n = state.source.trim() ? state.source.trim().split(/\s+/).length : 0;
-  $("#word-count").textContent = `${n.toLocaleString("ar")} كلمة`;
-}
-function paint() {
-  document.body.classList.remove("motion-none", "motion-calm");
-  if (state.motion !== "expressive")
-    document.body.classList.add("motion-" + state.motion);
-  $("#motion").textContent =
-    state.motion === "none" ? "الحركة متوقفة" : "الحركة مفعّلة";
-  $("#motion").setAttribute("aria-pressed", state.motion !== "none");
-  index = Math.min(
-    index,
-    Math.max(0, paginate(state.scenes, state.format).length - 1),
-  );
-  $("#preview").className =
-    `preview theme-${state.theme}${$("#preview-width").getAttribute("aria-pressed") === "true" ? " narrow" : ""}`;
-  $("#preview").innerHTML = renderDocument(state, index);
-  $("#scene-count").textContent =
-    `${state.scenes.length} مشهد · ${paginate(state.scenes, "slides").length} شريحة عند العرض`;
-  $("#present").disabled =
-    $("#pdf").disabled =
-    $("#export").disabled =
-      !state.scenes.length;
-  if ($("#viewer").open) paintViewer();
-}
-function sync() {
-  $("#project-title").value = state.title;
-  $("#source-text").value = state.source;
-  $("#format").value = state.format;
-  $("#motion-level").value = state.motion;
-  $("#content-dir").value = state.dir;
-  $$("[data-theme]").forEach((b) =>
-    b.setAttribute("aria-pressed", b.dataset.theme === state.theme),
-  );
-  count();
-  outline();
-  paint();
-}
-function editorTab(name) {
-  for (const n of ["source", "outline", "design"])
-    $(`#${n}-panel`).hidden = n !== name;
-  $$("[data-editor]").forEach((b) =>
-    b.setAttribute("aria-selected", b.dataset.editor === name),
-  );
-}
-function panel(name) {
-  $(".workspace").dataset.panel = name;
-  $$("[data-panel]")
-    .filter((x) => x.tagName === "BUTTON")
-    .forEach((b) => b.setAttribute("aria-selected", b.dataset.panel === name));
-}
-function route() {
-  const studio = location.hash === "#studio";
-  $("#home").hidden = studio;
-  $("#studio").hidden = !studio;
-  if (studio) {
-    paint();
-    requestAnimationFrame(() =>
-      window.scrollTo({ top: 0, behavior: "instant" }),
-    );
-  } else if (location.hash === "#inspiration")
-    requestAnimationFrame(() => $("#inspiration").scrollIntoView());
-}
-function outline() {
-  const el = $("#scene-list");
-  el.replaceChildren();
-  const frag = document.createDocumentFragment();
-  state.scenes.forEach((s, i) => {
-    const details = document.createElement("details");
-    details.className = "scene-editor";
-    details.dataset.id = s.id;
-    details.innerHTML = `<summary><b>${i + 1}</b><span>${e(s.title || s.body.trim().slice(0, 45) || "مشهد جديد")}</span></summary><label for="title-${s.id}">عنوان المشهد</label><input id="title-${s.id}" data-field="title" value="${e(s.title)}" dir="auto"><label for="body-${s.id}">المحتوى</label><textarea id="body-${s.id}" data-field="body" rows="5" dir="auto">${e(s.body)}</textarea><label for="layout-${s.id}">تركيب المشهد</label><select id="layout-${s.id}" data-field="layout">${Object.entries(
-      layouts,
-    )
-      .map(
-        ([k, v]) =>
-          `<option value="${k}" ${s.layout === k ? "selected" : ""}>${v}</option>`,
-      )
-      .join(
-        "",
-      )}</select><div class="scene-tools"><button data-action="up" aria-label="نقل المشهد لأعلى" ${i === 0 ? "disabled" : ""}>↑</button><button data-action="down" aria-label="نقل المشهد لأسفل" ${i === state.scenes.length - 1 ? "disabled" : ""}>↓</button><button data-action="copy">تكرار</button><button data-action="delete">حذف</button></div>`;
-    frag.append(details);
-  });
-  el.append(frag);
-}
-$("#scene-list").addEventListener("focusin", (ev) => {
-  if (ev.target.matches("input,textarea,select")) snapshot();
-});
-$("#scene-list").addEventListener("input", (ev) => {
-  const field = ev.target.dataset.field;
-  if (!field) return;
-  const s = state.scenes.find(
-    (x) => x.id === ev.target.closest("details").dataset.id,
-  );
-  s[field] = ev.target.value;
-  ev.target.closest("details").querySelector("summary span").textContent =
-    s.title || s.body.trim().slice(0, 45) || "مشهد جديد";
-  paint();
-  save();
-});
-$("#scene-list").addEventListener("click", (ev) => {
-  const action = ev.target.closest("[data-action]")?.dataset.action;
-  if (!action) return;
-  const id = ev.target.closest("details").dataset.id,
-    i = state.scenes.findIndex((x) => x.id === id);
-  snapshot();
-  if (action === "delete") state.scenes.splice(i, 1);
-  if (action === "copy")
-    state.scenes.splice(i + 1, 0, { ...state.scenes[i], id: uid() });
-  if (action === "up" && i > 0)
-    [state.scenes[i - 1], state.scenes[i]] = [
-      state.scenes[i],
-      state.scenes[i - 1],
-    ];
-  if (action === "down" && i < state.scenes.length - 1)
-    [state.scenes[i + 1], state.scenes[i]] = [
-      state.scenes[i],
-      state.scenes[i + 1],
-    ];
-  outline();
-  paint();
-  save();
-  notify(
-    action === "delete" ? "حُذف المشهد. يمكنك التراجع." : "تم تحديث المخطط",
-  );
-});
-$("#add-scene").onclick = () => {
-  snapshot();
-  state.scenes.push({ id: uid(), title: "", body: "", layout: "text" });
-  outline();
-  const d = $("#scene-list").lastElementChild;
-  d.open = true;
-  d.querySelector("input").focus();
-  paint();
-  save();
-};
-function generate() {
-  if (!state.source.trim()) {
-    notify("أضف نصًا أولًا لنكوّن تجربتك.");
-    $("#source-text").focus();
-    return;
-  }
-  if (state.scenes.length) snapshot();
-  state.scenes = parseText(state.source);
-  index = 0;
-  outline();
-  paint();
-  save();
-  if ($("#review-first").checked) {
-    editorTab("outline");
-    panel("editor");
-  } else panel("preview");
-  notify("تكوّن النص دون حذف. يمكنك تعديل المشاهد والمظهر.");
-}
-$("#generate").onclick = generate;
-function loadExample(key) {
-  snapshot();
-  Object.assign(state, examples[key]);
-  state.scenes = parseText(state.source);
-  index = 0;
-  sync();
-  save();
-  location.hash = "studio";
-  editorTab("outline");
-  panel("preview");
-  notify("تم تحميل المثال. يمكنك التراجع.");
-}
-$$("[data-example]").forEach(
-  (b) =>
-    (b.onclick = () => {
-      if (state.source.trim() || state.scenes.length) {
-        pendingExample = b.dataset.example;
-        $("#confirm").showModal();
-      } else loadExample(b.dataset.example);
-    }),
-);
-$("#cancel-confirm").onclick = () => $("#confirm").close();
-$("#accept-confirm").onclick = () => {
-  $("#confirm").close();
-  loadExample(pendingExample);
-};
-$("#try-demo").onclick = () => {
-  if (state.scenes.length) {
-    openViewer();
-    return;
-  }
-  loadExample("steps");
-  openViewer();
-};
-$("#project-title").addEventListener("focus", snapshot);
-$("#source-text").addEventListener("focus", snapshot);
-$("#project-title").oninput = (ev) => {
-  state.title = ev.target.value;
-  paint();
-  save();
-};
-$("#source-text").oninput = (ev) => {
-  state.source = ev.target.value;
-  count();
-  save();
-};
-$("#undo").onclick = () => {
-  if (!history.length) return;
-  state = history.pop();
-  $("#undo").disabled = !history.length;
-  sync();
-  save();
-  notify("تمت استعادة الحالة السابقة");
-};
-$$("[data-editor]").forEach(
-  (b) => (b.onclick = () => editorTab(b.dataset.editor)),
-);
-$$(".mobile-tabs button").forEach(
-  (b) => (b.onclick = () => panel(b.dataset.panel)),
-);
-for (const [selector, key] of [
-  ["#format", "format"],
-  ["#motion-level", "motion"],
-  ["#content-dir", "dir"],
-])
-  $(selector).onchange = (ev) => {
-    snapshot();
-    state[key] = ev.target.value;
-    index = 0;
-    paint();
-    save();
-  };
-$$("[data-theme]").forEach(
-  (b) =>
-    (b.onclick = () => {
-      snapshot();
-      state.theme = b.dataset.theme;
-      sync();
-      save();
-    }),
-);
-$("#motion").onclick = () => {
-  state.motion = state.motion === "none" ? "expressive" : "none";
-  $("#motion-level").value = state.motion;
-  paint();
-  save();
-};
-$("#preview-width").onclick = () => {
-  const b = $("#preview-width");
-  b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
-  paint();
-};
-function paintViewer() {
-  viewerIndex = Math.min(
-    viewerIndex,
-    Math.max(0, paginate(state.scenes, state.format).length - 1),
-  );
-  $("#view-content").className = `preview theme-${state.theme}`;
-  $("#view-content").innerHTML = renderDocument(state, viewerIndex);
-}
-function openViewer() {
-  if (!state.scenes.length) {
-    notify("كوّن نصًا أولًا.");
-    return;
-  }
-  viewerIndex = 0;
-  $("#viewer").showModal();
-  paintViewer();
-}
-$("#present").onclick = $("#preview-open").onclick = openViewer;
-$("#close-viewer").onclick = () => $("#viewer").close();
-$("#viewer").addEventListener("close", () => {
-  if (document.fullscreenElement) document.exitFullscreen?.();
-});
-$("#fullscreen").onclick = async () => {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await $("#viewer").requestFullscreen();
-  } catch {
-    notify("ملء الشاشة غير متاح في هذا المتصفح");
-  }
-};
-function navigate(root, delta) {
-  const total = paginate(state.scenes, state.format).length;
-  if (root === "view")
-    viewerIndex = Math.max(0, Math.min(total - 1, viewerIndex + delta));
-  else index = Math.max(0, Math.min(total - 1, index + delta));
-  root === "view" ? paintViewer() : paint();
-}
-for (const [sel, root] of [
-  ["#preview", "preview"],
-  ["#view-content", "view"],
-])
-  $(sel).onclick = (ev) => {
-    const btn = ev.target.closest("[data-step]");
-    if (btn) navigate(root, Number(btn.dataset.step));
-  };
-$("#viewer").addEventListener("keydown", (ev) => {
-  if (state.format !== "slides" || ev.target.matches("input,textarea,select"))
-    return;
-  const rtl = direction(state.title + state.source, state.dir) === "rtl";
-  if (["ArrowRight", "ArrowLeft"].includes(ev.key)) {
-    ev.preventDefault();
-    navigate("view", (ev.key === "ArrowLeft") === rtl ? 1 : -1);
-  }
-});
-// Standalone export embeds styles, fonts, content, and a tiny viewer; never executes user text.
-async function exportProject(pdf = false) {
-  const popup = pdf ? window.open("", "_blank") : null;
-  if (pdf && !popup) {
-    notify("اسمح بفتح نافذة الطباعة ثم أعد المحاولة.");
-    return;
-  }
-  const btn = $(pdf ? "#pdf" : "#export");
-  btn.disabled = true;
-  try {
-    const [styles, fonts] = await Promise.all(
-      ["styles.css", "fonts.css"].map(async (p) => {
-        const r = await fetch(p);
-        if (!r.ok) throw Error("asset missing");
-        return r.text();
-      }),
-    );
-    const project = JSON.stringify(state)
-      .replace(/</g, "\\u003c")
-      .replace(/\u2028/g, "\\u2028")
-      .replace(/\u2029/g, "\\u2029");
-    const runtime = `const layouts=${JSON.stringify(layouts)};const escapeHTML=${e.toString()};const direction=${direction.toString()};const splitText=${(await import("./core.js")).splitText.toString()};const paginate=${paginate.toString()};const renderDocument=${renderDocument.toString()};const state=JSON.parse(document.getElementById('project').textContent);let index=0;const root=document.getElementById('content');function render(){root.innerHTML=renderDocument(state,index)}function step(n){index=Math.max(0,Math.min(paginate(state.scenes,state.format).length-1,index+n));render()}root.onclick=e=>{const b=e.target.closest('[data-step]');if(b)step(Number(b.dataset.step))};document.addEventListener('keydown',e=>{if(state.format==='slides'&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();step((e.key==='ArrowLeft')===(direction(state.title+state.source,state.dir)==='rtl')?1:-1)}});document.getElementById('motion-toggle').onclick=()=>document.body.classList.toggle('motion-none');render();`;
-    const printCSS = `@page{size:${state.format === "slides" ? "A4 landscape" : "A4"};margin:12mm}@media print{html,body{background:var(--surface);-webkit-print-color-adjust:exact;print-color-adjust:exact}.export-header,.slide-controls,.slide-progress{display:none!important}.export-page .preview{padding:0;min-height:0}.print-slide{break-after:page}.print-slide:last-child{break-after:auto}.scene{animation:none!important;box-shadow:none;break-inside:avoid}.format-slides .scene{min-height:120mm}.document{max-width:none}.document-heading{margin:0 0 15px}.document-heading h2{font-size:30px}.scene p{orphans:3;widows:3}}`;
-    const printRuntime = `document.getElementById('content').innerHTML=state.format==='slides'?paginate(state.scenes,'slides').map((_,i)=>'<section class="print-slide">'+renderDocument(state,i)+'</section>').join(''):renderDocument(state,0);document.fonts.ready.then(()=>{setTimeout(()=>window.print(),250)});`;
-    const html = `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(state.title || "تكوين")}</title><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"><style>${fonts}\n${styles}\n${pdf ? printCSS : ""}</style><body class="export-page motion-${state.motion}"><main class="preview theme-${state.theme}"><div class="export-header"><span>تكوين / من كلمات إلى تجربة</span><button id="motion-toggle" class="quiet">تشغيل / إيقاف الحركة</button></div><div id="content"></div></main><script type="application/json" id="project">${project}</script><script>${runtime}\n${pdf ? printRuntime : ""}</script></body></html>`;
-    if (pdf) {
-      popup.document.open();
-      popup.document.write(html);
-      popup.document.close();
-      notify(
-        "اختر حفظ بصيغة PDF؛ فعّل رسومات الخلفية وأوقف ترويسات المتصفح. PDF ثابت، وHTML يحفظ الحركة.",
-      );
-      return;
-    }
-    const url = URL.createObjectURL(
-      new Blob([html], { type: "text/html;charset=utf-8" }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download =
-      (state.title || "takween")
-        .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")
-        .slice(0, 100) + ".html";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    notify("تم تجهيز HTML مستقل بالحركة والخطوط والنص الأصلي.");
-  } catch {
-    popup?.close();
-    notify("تعذّر تجهيز الملف. تأكد من تحميل ملفات الموقع ثم حاول مجددًا.");
+    const { buildPdf, deliver } = await import("./pdf.js");
+    const result = await buildPdf(state, (done, total) => {
+      btns.forEach((b) => (b.textContent = `جارٍ التجهيز… ${done}/${total}`));
+    });
+    const how = await deliver(result);
+    toast(how === "shared" ? "تم تجهيز الملف." : "تم حفظ الملف PDF.");
+  } catch (err) {
+    console.error(err);
+    toast("تعذّر إنشاء الملف. حاول مرة أخرى.");
   } finally {
-    btn.disabled = false;
+    exporting = false;
+    btns.forEach((b) => {
+      b.disabled = false;
+      b.textContent = "حفظ PDF";
+    });
   }
 }
-$("#export").onclick = () => exportProject(false);
-$("#pdf").onclick = () => exportProject(true);
-window.addEventListener("hashchange", route);
-window.addEventListener("pagehide", () => {
-  try {
-    localStorage.setItem("takween-v4", JSON.stringify(state));
-  } catch {}
+$("#pdf").addEventListener("click", savePdf);
+$("#pdf-mobile").addEventListener("click", savePdf);
+window.__takween = { get state() { return state; }, savePdf };
+
+/* ---------- Home demo ---------- */
+const demo = $("#demo-preview");
+let demoForm = "summary";
+let demoTimer;
+function showDemo(form, animate = true) {
+  demoForm = form;
+  $$("[data-demo]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.demo === form)));
+  demo.className = "preview theme-mist demo-preview";
+  demo.innerHTML = renderDocument({ ...examples.article, form, theme: "mist" });
+  $$(".card[data-open]", demo).forEach((c, i) => i === 0 && setOpen(c, true));
+  if (animate && !reduced.matches) {
+    demo.classList.add("switching");
+  }
+}
+$(".demo-tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-demo]");
+  if (!b) return;
+  clearInterval(demoTimer);
+  showDemo(b.dataset.demo);
 });
-restore();
-sync();
+const order = Object.keys(forms);
+function startDemo() {
+  if (reduced.matches) return;
+  demoTimer = setInterval(() => {
+    if (location.hash === "#write" || document.hidden) return;
+    showDemo(order[(order.indexOf(demoForm) + 1) % 3]);
+  }, 5000);
+}
+showDemo("summary", false);
+startDemo();
+
+syncControls();
 route();
