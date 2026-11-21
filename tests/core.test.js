@@ -3,10 +3,13 @@ import assert from "node:assert/strict";
 import {
   parseBlocks, buildModel, renderDocument, renderPdfModel, splitText,
   splitTitle, readingMinutes, minutesLabel, fileName, examples, sanitizeState, escapeHTML,
+  toFlashcards, localDigits,
 } from "../core.js";
+import { sourceToBlocks, blocksToSource, detectShortcut, suggest, arrange, newBlock } from "../blocks.js";
 
 const words = (s) => s.replace(/[#>*•\-–]|[0-9٠-٩]+[.)]/g, " ").split(/\s+/).filter(Boolean);
-const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/g, " ");
+const latin = (s) => s.replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/٪/g, "%");
+const textOf = (html) => latin(html.replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/g, " "));
 
 test("markup becomes the right blocks", () => {
   const b = parseBlocks("# عنوان\nفقرة أولى\nسطر ثانٍ\n\n- أ\n- ب\n\n1. خطوة\n2) خطوة ثانية\n\n> اقتباس\n\n85% من المستخدمين\n\n«نص مقتبس»");
@@ -49,12 +52,12 @@ test("pdf has no interactive controls and cards are open", () => {
   const p = renderPdfModel({ ...examples.cards, form: "cards" });
   const html = p.units.join("");
   assert.ok(!html.includes("<button"));
-  assert.ok(html.includes("card open"));
+  assert.ok(html.includes("fc-print"));
   assert.ok(!renderPdfModel({ ...examples.article }).units.join("").includes("<button"));
 });
 
 test("screen cards and sections are interactive", () => {
-  assert.ok(renderDocument(examples.cards).includes('aria-expanded="false"'));
+  assert.ok(renderDocument(examples.cards).includes('aria-pressed="false"'));
   const a = renderDocument(examples.article);
   assert.ok(a.includes('class="toc"') && a.includes("data-goto"));
 });
@@ -91,3 +94,4 @@ test("splitTitle, fileName, sanitizeState", () => {
 test("empty input renders nothing", () => {
   assert.equal(renderDocument({ title: "", source: "", form: "cards" }), "");
 });
+

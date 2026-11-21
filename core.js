@@ -25,6 +25,8 @@ const reUl = /^\s*[-*•–]\s+(.*\S)\s*$/;
 const reOl = new RegExp(`^\\s*[${DIG}]+\\s*[.)\\-ـ]\\s+(.*\\S)\\s*$`);
 const reQuote = /^\s*>\s?(.*)$/;
 const reWrapped = /^\s*([«“"].*[»”"])\s*$/;
+const reFront = /^\s*\?\?\s+(.*\S)\s*$/;
+const reBack = /^\s*!!\s+(.*\S)\s*$/;
 const reStat = new RegExp(
   `^\\s*([+\\-−]?[${DIG}]+(?:[.,٫٬][${DIG}]+)*\\s?[%٪]?)\\s+(\\S.*?)\\s*$`,
 );
@@ -65,6 +67,12 @@ export function parseBlocks(source) {
     if ((m = line.match(reHeading))) {
       flush();
       blocks.push({ t: "h", level: m[1].length, text: m[2] });
+    } else if ((m = line.match(reFront))) {
+      flush();
+      blocks.push({ t: "front", text: m[1] });
+    } else if ((m = line.match(reBack))) {
+      flush();
+      blocks.push({ t: "back", text: m[1] });
     } else if ((m = line.match(reUl))) {
       if (!list || list.t !== "ul") {
         flush();
@@ -134,6 +142,8 @@ export function splitTitle(text) {
   const t = text.trim();
   let m = t.match(/^([^\n:：]{2,60}?)\s*[:：]\s+([\s\S]+)$/);
   if (m) return { title: m[1], detail: m[2] };
+  m = t.match(/^([^\n]{2,60}?)\s+[—–]\s+([\s\S]+)$/);
+  if (m) return { title: m[1], detail: m[2] };
   m = t.match(/^([^\n]{8,110}?[.!؟?。])\s+([\s\S]+)$/);
   if (m) return { title: m[1], detail: m[2] };
   if (t.length <= 110 && !t.includes("\n")) return { title: t, detail: "" };
@@ -149,24 +159,38 @@ export function buildModel(state) {
     title = blocks[0].text;
     blocks = blocks.slice(1);
   }
+  const all = blocks;
+  if (state.form !== "cards")
+    blocks = blocks.map((b) =>
+      b.t === "front" ? { t: "h", level: 2, text: b.text } : b.t === "back" ? { t: "p", text: b.text } : b,
+    );
   const { lead, sections } = toSections(blocks);
   const dir = direction(title + state.source);
-  return { title, blocks, lead, sections, dir, form: state.form, minutes: readingMinutes(state.source) };
+  return { title, blocks, all, lead, sections, dir, form: state.form, minutes: readingMinutes(state.source) };
 }
 
 const e = escapeHTML;
 const multi = (s) => e(s).replace(/\n/g, "<br>");
 
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+/** Arabic-Indic digits and ٪ inside Arabic documents; unchanged otherwise. */
+export const localDigits = (s, dir = "rtl") =>
+  dir === "rtl"
+    ? String(s).replace(/[0-9]/g, (d) => AR_DIGITS[d]).replace(/%/g, "٪")
+    : String(s);
+
 function blockHTML(b, o = {}) {
   const pieces = (txt) => (o.pdf ? splitText(txt, 650) : [txt]);
   switch (b.t) {
     case "p":
+    case "front":
+    case "back":
       return pieces(b.text).map((x, i) => `<p class="${i ? "cont" : ""}" dir="auto">${multi(x)}</p>`);
     case "quote":
       return [`<blockquote dir="auto">${multi(b.text)}</blockquote>`];
     case "stat":
       return [
-        `<div class="stat"><b dir="ltr">${e(b.value)}</b><span dir="auto">${e(b.label)}</span></div>`,
+        `<div class="stat"><b dir="ltr">${e(localDigits(b.value, o.dir))}</b><span dir="auto">${e(b.label)}</span></div>`,
       ];
     case "ul":
     case "ol": {
@@ -175,8 +199,11 @@ function blockHTML(b, o = {}) {
       for (let i = 0; i < b.items.length; i += size) {
         const part = b.items.slice(i, i + size);
         out.push(
-          `<${b.t} class="${i ? "cont" : ""}"${b.t === "ol" && i ? `` : ""}>${part
-            .map((x, j) => `<li dir="auto">${b.t === "ol" ? `<span class="n">${i + j + 1}.</span>` : ""}${multi(x)}</li>`)
+          `<${b.t} class="${i ? "cont" : ""}">${part
+            .map(
+              (x, j) =>
+                `<li dir="auto">${b.t === "ol" ? `<span class="n">${localDigits(i + j + 1, o.dir)}</span>` : ""}${multi(x)}</li>`,
+            )
             .join("")}</${b.t}>`,
         );
       }
@@ -207,11 +234,9 @@ function summaryUnits(m, o) {
   if (bs[0]?.t === "p") intro = bs.shift();
   let takeaway = null;
   if (bs.length > 2 && ["p", "quote"].includes(bs.at(-1).t)) takeaway = bs.pop();
-  if (intro)
-    units.push(`<div class="intro">${blockHTML(intro, o).join("")}</div>`);
+  if (intro) units.push(`<div class="intro">${blockHTML(intro, o).join("")}</div>`);
   const stats = bs.filter((b) => b.t === "stat");
-  if (stats.length)
-    units.push(`<div class="stats">${stats.map((s) => blockHTML(s)[0]).join("")}</div>`);
+  if (stats.length) units.push(`<div class="stats">${stats.map((s) => blockHTML(s, o)[0]).join("")}</div>`);
   const rest = bs.filter((b) => b.t !== "stat");
   if (rest.length) {
     let first = true;
@@ -235,9 +260,7 @@ function summaryUnits(m, o) {
     }
   }
   if (takeaway)
-    units.push(
-      `<div class="takeaway"><h3 class="label">الخلاصة</h3>${blockHTML(takeaway, o).join("")}</div>`,
-    );
+    units.push(`<div class="takeaway"><h3 class="label">الخلاصة</h3>${blockHTML(takeaway, o).join("")}</div>`);
   return keepWithNext(units);
 }
 // A heading or label never ends a page alone: it travels with the unit after it.
@@ -252,64 +275,70 @@ function keepWithNext(units) {
   return out;
 }
 
-/* ---------- Cards ---------- */
-function cardHTML(c, i, o) {
-  const num = `<span class="num">${String(i + 1).padStart(2, "0")}</span>`;
-  const open = o.pdf;
-  const detail = c.detail || "";
-  if (c.stat)
-    return `<article class="card stat-card">${num}${blockHTML(c.stat)[0]}</article>`;
-  const body = detail
-    ? `<div class="card-body"><div class="card-inner">${detail}</div></div>`
-    : "";
-  if (o.pdf || !detail)
-    return `<article class="card ${open ? "open" : ""}">${num}<h3 dir="auto">${e(c.title)}</h3>${body}</article>`;
-  return `<article class="card" data-open="false"><button class="card-head" type="button" aria-expanded="false">${num}<h3 dir="auto">${e(c.title)}</h3>${chevron}</button>${body}</article>`;
-}
-export function toCards(m) {
+/* ---------- Flashcards ---------- */
+/**
+ * Blocks -> [{ front, back (html), big }].
+ * Heading or "وجه" block = front; following "ظهر" blocks (and, after a heading, any blocks) = back.
+ * Other items split at ":" or "—" into front/back. Nothing is dropped.
+ */
+export function toFlashcards(m) {
+  const dir = m.dir;
   const cards = [];
-  if (m.sections.length) {
-    for (const s of m.sections)
-      cards.push({ title: s.title, detail: blocksHTML(s.blocks, { pdf: false }).join("") });
-  } else {
-    for (const b of m.blocks) {
-      if (b.t === "ul" || b.t === "ol") {
-        for (const it of b.items) {
-          const { title, detail } = splitTitle(it);
-          cards.push({ title, detail: detail ? `<p dir="auto">${multi(detail)}</p>` : "" });
-        }
-      } else if (b.t === "stat") cards.push({ stat: b });
-      else if (b.t === "quote")
-        cards.push({ title: b.text, detail: "" });
-      else {
-        const { title, detail } = splitTitle(b.text);
-        cards.push({ title, detail: detail ? `<p dir="auto">${multi(detail)}</p>` : "" });
-      }
+  const item = (text) => {
+    const { title, detail } = splitTitle(text);
+    cards.push({ front: title, back: detail ? `<p dir="auto">${multi(detail)}</p>` : "" });
+  };
+  let cur = null;
+  for (const b of m.all) {
+    if (b.t === "h" || b.t === "front") {
+      cur = { front: b.text, parts: [], mode: b.t };
+      cards.push(cur);
+    } else if (b.t === "back" && cur) cur.parts.push(`<p dir="auto">${multi(b.text)}</p>`);
+    else if (cur && cur.mode === "h") cur.parts.push(...blockHTML(b, { dir }));
+    else {
+      cur = null;
+      if (b.t === "ul" || b.t === "ol") b.items.forEach(item);
+      else if (b.t === "stat")
+        cards.push({ front: localDigits(b.value, dir), back: `<p dir="auto">${e(b.label)}</p>`, big: true });
+      else if (b.t === "quote") cards.push({ front: b.text, back: "" });
+      else item(b.text);
     }
   }
-  return cards;
+  return cards.map((c) => ({ front: c.front, big: !!c.big, back: c.back ?? c.parts.join("") }));
+}
+
+function fcFront(c, i, dir) {
+  const n = localDigits(String(i + 1).padStart(2, "0"), dir);
+  return `<span class="num">${n}</span>${
+    c.big ? `<b class="bigv" dir="ltr">${e(c.front)}</b>` : `<h3 dir="auto">${multi(c.front)}</h3>`
+  }`;
+}
+function flashcardHTML(c, i, o) {
+  if (o.pdf)
+    return `<article class="card fc-print"><div class="fc-p-front">${fcFront(c, i, o.dir)}</div>${
+      c.back ? `<div class="fc-p-back"><span class="side">الظهر</span>${c.back}</div>` : ""
+    }</article>`;
+  if (!c.back)
+    return `<article class="fc static"><div class="fc-face fc-front">${fcFront(c, i, o.dir)}</div></article>`;
+  const label = e(`بطاقة: ${c.front.slice(0, 80)}. اضغط لقلبها`);
+  return `<article class="fc"><div class="fc-in" role="button" tabindex="0" aria-pressed="false" aria-label="${label}"><div class="fc-face fc-front">${fcFront(c, i, o.dir)}<span class="hint">اضغط للقلب</span></div><div class="fc-face fc-back" aria-hidden="true"><span class="side">الظهر</span>${c.back}</div></div></article>`;
 }
 
 /* ---------- Article ---------- */
 const slug = (i) => `sec-${i + 1}`;
-function articleStatic(m, o) {
-  const units = [];
-  if (m.sections.length) {
-    units.push(
-      `<nav class="toc"><h3 class="label">المحتويات</h3><ol>${m.sections
-        .map((s, i) => `<li class="lv${s.level}"><a href="#${slug(i)}"><span class="n">${i + 1}.</span>${e(s.title)}</a></li>`)
-        .join("")}</ol></nav>`,
-    );
-  }
-  return units;
-}
+const tocHTML = (m, interactive) =>
+  `<nav class="toc"${interactive ? ' aria-label="المحتويات"' : ""}><h3 class="label">المحتويات</h3><ol>${m.sections
+    .map(
+      (s, i) =>
+        `<li class="lv${s.level}"><a href="#${slug(i)}"${interactive ? ` data-goto="${slug(i)}"` : ""}><span class="n">${localDigits(i + 1, m.dir)}</span>${e(s.title)}</a></li>`,
+    )
+    .join("")}</ol></nav>`;
 
 function articleSections(m, o) {
   const out = [];
   if (m.lead.length) out.push({ units: blocksHTML(m.lead, o), lead: true });
   m.sections.forEach((s, i) => {
-    const parts = blocksHTML(s.blocks, o);
-    out.push({ id: slug(i), title: s.title, level: s.level, units: parts });
+    out.push({ id: slug(i), title: s.title, level: s.level, units: blocksHTML(s.blocks, o) });
   });
   return out;
 }
@@ -318,22 +347,18 @@ function articleSections(m, o) {
 export function renderDocument(state) {
   const m = buildModel(state);
   if (!m.title && !m.blocks.length) return "";
-  const o = { pdf: false };
+  const o = { pdf: false, dir: m.dir };
   let body = "";
   if (m.form === "summary") {
     body = `<div class="units summary-units">${summaryUnits(m, o).join("")}</div>`;
   } else if (m.form === "cards") {
-    const lead = m.lead.length ? `<div class="lead">${blocksHTML(m.lead, o).join("")}</div>` : "";
-    body = `${lead}<div class="units cards-units">${toCards(m)
-      .map((c, i) => cardHTML(c, i, o))
+    const cards = toFlashcards(m);
+    body = `<div class="doc-tools"><button type="button" class="study-btn" data-study>وضع المراجعة</button></div><div class="units cards-units">${cards
+      .map((c, i) => flashcardHTML(c, i, o))
       .join("")}</div>`;
   } else {
     const secs = articleSections(m, o);
-    const toc = m.sections.length
-      ? `<nav class="toc" aria-label="المحتويات"><h3 class="label">المحتويات</h3><ol>${m.sections
-          .map((s, i) => `<li class="lv${s.level}"><a href="#${slug(i)}" data-goto="${slug(i)}"><span class="n">${i + 1}.</span>${e(s.title)}</a></li>`)
-          .join("")}</ol></nav>`
-      : "";
+    const toc = m.sections.length ? tocHTML(m, true) : "";
     body = `<div class="article-layout">${toc}<div class="units article-units">${secs
       .map((s) =>
         s.lead
@@ -348,14 +373,12 @@ export function renderDocument(state) {
 /** PDF model: header + non-splittable units, paginated by the exporter. */
 export function renderPdfModel(state) {
   const m = buildModel(state);
-  const o = { pdf: true };
+  const o = { pdf: true, dir: m.dir };
   let units = [];
   if (m.form === "summary") units = summaryUnits(m, o);
-  else if (m.form === "cards") {
-    if (m.lead.length) units.push(...blocksHTML(m.lead, o).map((x) => `<div class="lead">${x}</div>`));
-    units.push(...toCards(m).map((c, i) => cardHTML(c, i, o)));
-  } else {
-    units.push(...articleStatic(m, o));
+  else if (m.form === "cards") units = toFlashcards(m).map((c, i) => flashcardHTML(c, i, o));
+  else {
+    if (m.sections.length) units.push(tocHTML(m, false));
     for (const s of articleSections(m, o)) {
       if (s.lead) {
         units.push(...s.units);
@@ -369,6 +392,10 @@ export function renderPdfModel(state) {
     }
   }
   return { head: headHTML(m), units, form: m.form, dir: m.dir, title: m.title };
+}
+
+export function logoSVG(size = 24) {
+  return `<svg class="logo-svg" width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="4" width="30" height="22" rx="8" fill="#b2874d" fill-opacity=".9" transform="rotate(-8 24 15)"/><rect x="5" y="14" width="32" height="22" rx="8" fill="#ffffff" fill-opacity=".75" stroke="#203f36" stroke-opacity=".3"/><rect x="13" y="26" width="30" height="18" rx="7" fill="#203f36"/></svg>`;
 }
 
 export function fileName(title) {
@@ -449,3 +476,5 @@ export function sanitizeState(d) {
     motion: o.motion !== false,
   };
 }
+
+export { reStat, reHeading, reUl, reOl, reQuote, reWrapped, reFront, reBack };

@@ -9,24 +9,31 @@
       content="حوّل نصّك إلى ملخّص مرتّب أو بطاقات أو مقال، واحفظه PDF بالتنسيق نفسه."
     />
     <title>تكوين — نصّك بشكل مرتّب</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 48 48%27%3E%3Crect x=%279%27 y=%274%27 width=%2730%27 height=%2722%27 rx=%278%27 fill=%27%23b2874d%27 transform=%27rotate(-8 24 15)%27/%3E%3Crect x=%275%27 y=%2714%27 width=%2732%27 height=%2722%27 rx=%278%27 fill=%27%23f4f1e6%27 stroke=%27%23203f36%27 stroke-opacity=%27.4%27/%3E%3Crect x=%2713%27 y=%2726%27 width=%2730%27 height=%2718%27 rx=%277%27 fill=%27%23203f36%27/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="fonts.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <a href="#home" class="brand" aria-label="تكوين — الصفحة الرئيسة"
-        ><span class="brand-mark" aria-hidden="true">ت</span><span>تكوين</span></a
-      >
+      <a href="#home" class="brand" aria-label="تكوين — الصفحة الرئيسة"><svg class="logo" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><rect class="l1" x="9" y="4" width="30" height="22" rx="8" fill="#b2874d" fill-opacity=".9"/><rect class="l2" x="5" y="14" width="32" height="22" rx="8" fill="#fff" fill-opacity=".75" stroke="#203f36" stroke-opacity=".3"/><rect class="l3" x="13" y="26" width="30" height="18" rx="7" fill="#203f36"/></svg><span>تكوين</span></a>
+      <a id="back" class="button ghost back" href="#home" hidden><span aria-hidden="true">→</span> الرئيسية</a>
     </header>
 
     <main id="home" class="view">
       <section class="hero">
+        <i class="orb o1" aria-hidden="true"></i><i class="orb o2" aria-hidden="true"></i><i class="orb o3" aria-hidden="true"></i>
         <div class="hero-copy">
           <h1>حوّل نصّك إلى ملخّص مرتّب أو بطاقات أو مقال</h1>
           <p>اكتب أو الصق نصّك، واختر الشكل، واحفظه PDF بالتنسيق نفسه.</p>
           <a class="button primary big" href="#write">ابدأ الكتابة</a>
         </div>
         <div class="demo" aria-label="مثال: النص نفسه بثلاثة أشكال">
+          <div class="mini-editor glass-card" aria-hidden="true">
+            <div class="blk" data-t="h"><span class="badge"><i class="dot"></i><span>عنوان</span></span><div class="body"><div class="txt">لماذا نكتب بخط اليد؟</div></div></div>
+            <div class="blk" data-t="ul"><span class="badge"><i class="dot"></i><span>نقطة</span></span><div class="body"><div class="txt">تقوّي الذاكرة</div></div></div>
+            <div class="blk" data-t="stat"><span class="badge"><i class="dot"></i><span>رقم بارز</span></span><div class="body"><div class="txt">٧٠٪ من الطلاب يفضّلون ذلك</div></div></div>
+            <div class="blk" data-t="quote"><span class="badge"><i class="dot"></i><span>اقتباس</span></span><div class="body"><div class="txt">ما نكتبه نتذكره أكثر</div></div></div>
+          </div>
           <div class="segmented demo-tabs" role="tablist" aria-label="شكل المثال">
             <button role="tab" data-demo="summary" aria-selected="true">ملخّص</button>
             <button role="tab" data-demo="cards" aria-selected="false">بطاقات</button>
@@ -83,17 +90,28 @@
         <section class="editor glass-card" aria-label="الكتابة">
           <label for="title" class="sr">العنوان</label>
           <input id="title" type="text" placeholder="العنوان" autocomplete="off" />
-          <div class="markup" role="toolbar" aria-label="أدوات التنسيق">
-            <button type="button" data-mark="# " title="عنوان">عنوان</button>
-            <button type="button" data-mark="- " title="نقطة">نقطة</button>
-            <button type="button" data-mark="1. " title="خطوة">خطوة</button>
-            <button type="button" data-mark="> " title="اقتباس">اقتباس</button>
-            <button type="button" data-mark="100% " title="رقم بارز">رقم بارز</button>
+          <div id="proposal" class="proposal" hidden>
+            <span id="proposal-text"></span>
+            <button type="button" class="button primary small" id="proposal-ok">قبول</button>
+            <button type="button" class="button ghost small" id="proposal-undo">تراجع</button>
           </div>
-          <label for="source" class="sr">النص</label>
-          <textarea id="source" placeholder="اكتب نصّك هنا، أو الصقه."></textarea>
+          <div id="blocks" class="blocks" aria-label="النص"></div>
+          <div id="typebar" class="typebar" role="toolbar" aria-label="نوع السطر الحالي"></div>
+          <details class="legend">
+            <summary>كيف أنسّق؟</summary>
+            <ul>
+              <li><kbd dir="ltr">#</kbd> عنوان</li>
+              <li><kbd dir="ltr">-</kbd> نقطة</li>
+              <li><kbd dir="ltr">1.</kbd> خطوة</li>
+              <li><kbd dir="ltr">&gt;</kbd> اقتباس</li>
+              <li><kbd dir="ltr">85%</kbd> رقم بارز</li>
+              <li><kbd dir="ltr">/</kbd> اختيار النوع</li>
+            </ul>
+            <p class="muted">اكتب الرمز ثم مسافة في بداية السطر، أو اضغط على اسم النوع بجانب السطر لتغييره.</p>
+          </details>
           <div class="editor-foot">
             <span id="count" class="muted"></span>
+            <button type="button" class="button ghost small" id="arrange" title="يقترح نوعًا لكل سطر">ترتيب سريع</button>
           </div>
         </section>
         <section class="preview-pane" aria-label="المعاينة">
@@ -106,6 +124,9 @@
       </div>
     </main>
 
+    <div id="typemenu" class="typemenu glass-card" role="menu" hidden></div>
+    <div id="mini" class="mini" hidden></div>
+    <div id="study" hidden></div>
     <div id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="app.js"></script>
   </body>

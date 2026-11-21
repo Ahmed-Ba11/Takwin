@@ -1,6 +1,6 @@
 // Client-side PDF: fixed A4 pages are rendered off-screen, rasterised and assembled.
 // Uses vendored html2canvas + jsPDF (see vendor/). Works offline, no popup, no print dialog.
-import { renderPdfModel, fileName } from "./core.js";
+import { renderPdfModel, fileName, logoSVG } from "./core.js";
 
 export const PAGE_W = 794; // A4 at 96dpi
 export const PAGE_H = 1123;
@@ -57,7 +57,7 @@ export function paginate(stage, pm, theme) {
     }
   }
   pages.forEach((p, i) => {
-    p.querySelector(".pdf-foot").textContent = `${i + 1} / ${pages.length}`;
+    p.querySelector(".pdf-foot").innerHTML = `${logoSVG(16)}<span>${i + 1} / ${pages.length}</span>`;
     p.firstElementChild.style.overflow = "hidden";
   });
   return pages;
