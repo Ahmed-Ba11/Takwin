@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/core.test.js",
-    "start": "python3 -m http.server 4318 --bind 127.0.0.1",
+    "start": "node tools/serve.mjs",
     "fonts": "python3 build_fonts.py",
     "build": "node tools/build.mjs"
   }

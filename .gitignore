@@ -3,6 +3,6 @@ assets/fonts/
 node_modules/
 __pycache__/
 .test-artifacts/
-
-vendor/
 dist/
+desktop.ini
+.claude/
