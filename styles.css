@@ -571,3 +571,26 @@ body { overflow-x: clip; }
   .topbar { flex-wrap: wrap; }
   .lib-tools input[type="search"] { max-width: none; }
 }
+
+/* =====================  Edit in the preview  ===================== */
+.preview [data-block-id], .preview [data-title] { outline: none; cursor: text; border-radius: 8px; transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease); }
+.preview [data-block-id]:hover, .preview [data-title]:hover { background: #ffffff33; }
+.preview [data-block-id]:focus, .preview [data-title]:focus { background: #ffffff59; box-shadow: 0 0 0 2px color-mix(in srgb, var(--hi) 70%, transparent); }
+.preview [data-block-id]:empty::before, .preview [data-title]:empty::before { content: attr(data-ph); color: var(--soft); opacity: 0.7; pointer-events: none; }
+.preview [data-block-id]:empty { min-height: 1.6em; display: inline-block; min-width: 4em; }
+.bt { display: inline; }
+.toc .tt { display: inline; }
+.sec-head { position: relative; }
+.sec-head h3 { pointer-events: auto !important; padding-inline-end: 8px; }
+.chev-btn { position: absolute; inset-inline-end: 0; top: 0; width: 44px; height: 44px; color: inherit; }
+.chev-btn .chev { inset-inline-end: 14px; }
+.fc-flip { position: absolute; z-index: 2; bottom: 10px; inset-inline-end: 12px; min-height: 36px; padding: 2px 14px; border-radius: 100px; font-size: 13px; font-weight: 700; color: var(--hi); background: color-mix(in srgb, var(--hi) 14%, transparent); transition: background 0.25s, transform 0.25s var(--ease); }
+.fc-flip:hover { background: color-mix(in srgb, var(--hi) 26%, transparent); transform: translateY(-1px); }
+.preview .fc-face { padding-bottom: 46px; }
+.fc-in { cursor: default; }
+.mini { max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none; }
+.mini button { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.mini .dot { background: var(--tc); }
+.mini-del { color: #ffb4ab !important; }
+.mini.docked { left: 8px !important; right: 8px; top: auto !important; bottom: var(--mb, 82px); max-width: none; border-radius: 16px; padding: 6px; box-shadow: 0 -6px 28px #0003; }
+.mini.docked button { min-height: 44px; padding-inline: 14px; }

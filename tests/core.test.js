@@ -84,7 +84,8 @@ test("no slides remain and html is escaped", () => {
 });
 
 test("splitTitle, fileName, sanitizeState", () => {
-  assert.deepEqual(splitTitle("العنوان: التفصيل"), { title: "العنوان", detail: "التفصيل" });
+  const sp = splitTitle("العنوان: التفصيل");
+  assert.deepEqual([sp.title, sp.detail, sp.sep], ["العنوان", "التفصيل", ": "]);
   assert.equal(splitTitle("قصيرة").detail, "");
   assert.equal(fileName('a/b:"c"'), "a b c.pdf");
   assert.equal(fileName(""), "تكوين.pdf");

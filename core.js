@@ -122,8 +122,9 @@ export function countWords(source) {
 export function readingMinutes(source) {
   return Math.max(1, Math.round(countWords(source) / 200));
 }
-export function minutesLabel(n) {
-  return n === 1 ? "دقيقة واحدة" : n === 2 ? "دقيقتان" : n <= 10 ? `${n} دقائق` : `${n} دقيقة`;
+export function minutesLabel(n, dir = "ltr") {
+  const num = localDigits(n, dir);
+  return n === 1 ? "دقيقة واحدة" : n === 2 ? "دقيقتان" : n <= 10 ? `${num} دقائق` : `${num} دقيقة`;
 }
 
 /** Splits blocks into the lead (before first heading) and heading sections. */
@@ -131,7 +132,7 @@ export function toSections(blocks) {
   const lead = [];
   const sections = [];
   for (const b of blocks) {
-    if (b.t === "h") sections.push({ level: b.level, title: b.text, blocks: [] });
+    if (b.t === "h") sections.push({ level: b.level, title: b.text, hid: b.id, blocks: [] });
     else (sections.at(-1)?.blocks ?? lead).push(b);
   }
   return { lead, sections };
@@ -140,33 +141,36 @@ export function toSections(blocks) {
 /** Splits an item into a short card title and optional detail. Lossless. */
 export function splitTitle(text) {
   const t = text.trim();
-  let m = t.match(/^([^\n:：]{2,60}?)\s*[:：]\s+([\s\S]+)$/);
-  if (m) return { title: m[1], detail: m[2] };
-  m = t.match(/^([^\n]{2,60}?)\s+[—–]\s+([\s\S]+)$/);
-  if (m) return { title: m[1], detail: m[2] };
-  m = t.match(/^([^\n]{8,110}?[.!؟?。])\s+([\s\S]+)$/);
-  if (m) return { title: m[1], detail: m[2] };
-  if (t.length <= 110 && !t.includes("\n")) return { title: t, detail: "" };
+  let m = t.match(/^([^\n:：]{2,60}?)(\s*[:：]\s+)([\s\S]+)$/);
+  if (m) return { title: m[1], sep: m[2], detail: m[3] };
+  m = t.match(/^([^\n]{2,60}?)(\s+[—–]\s+)([\s\S]+)$/);
+  if (m) return { title: m[1], sep: m[2], detail: m[3] };
+  m = t.match(/^([^\n]{8,110}?[.!؟?。])(\s+)([\s\S]+)$/);
+  if (m) return { title: m[1], sep: m[2], detail: m[3] };
+  if (t.length <= 110 && !t.includes("\n")) return { title: t, detail: "", sep: "" };
   const words = t.split(/\s+/);
-  return { title: words.slice(0, 8).join(" ") + "…", detail: t };
+  return { title: words.slice(0, 8).join(" ") + "…", detail: t, sep: null, derived: true };
 }
 
 /** Normalises state into a model every form renders from. */
 export function buildModel(state) {
-  let blocks = parseBlocks(state.source);
+  const editable = Array.isArray(state.blocks);
+  let blocks = editable ? flatToParsed(state.blocks) : parseBlocks(state.source);
   let title = (state.title || "").trim();
-  if (!title && blocks[0]?.t === "h" && blocks[0].level === 1) {
+  let titleId = null;
+  if (!title && blocks[0]?.t === "h" && blocks[0].level === 1 && blocks[0].text.trim()) {
     title = blocks[0].text;
+    titleId = blocks[0].id ?? null;
     blocks = blocks.slice(1);
   }
   const all = blocks;
   if (state.form !== "cards")
     blocks = blocks.map((b) =>
-      b.t === "front" ? { t: "h", level: 2, text: b.text } : b.t === "back" ? { t: "p", text: b.text } : b,
+      b.t === "front" ? { t: "h", level: 2, text: b.text, id: b.id } : b.t === "back" ? { t: "p", text: b.text, id: b.id } : b,
     );
   const { lead, sections } = toSections(blocks);
   const dir = direction(title + state.source);
-  return { title, blocks, all, lead, sections, dir, form: state.form, minutes: readingMinutes(state.source) };
+  return { title, titleId, editable, blocks, all, lead, sections, dir, form: state.form, minutes: readingMinutes(state.source) };
 }
 
 const e = escapeHTML;
@@ -178,6 +182,34 @@ export const localDigits = (s, dir = "rtl") =>
   dir === "rtl"
     ? String(s).replace(/[0-9]/g, (d) => AR_DIGITS[d]).replace(/%/g, "٪")
     : String(s);
+/** Back to Latin digits and % (used when editing a localized number in the preview). */
+export const latinDigits = (s) =>
+  String(s).replace(/[٠-٩]/g, (d) => AR_DIGITS.indexOf(d)).replace(/٪/g, "%");
+
+// data-block-id ties a rendered element to its source block (set only when blocks carry ids).
+const idAttr = (id, part = "", extra = "") =>
+  id == null ? "" : ` data-block-id="${id}"${part ? ` data-part="${part}"` : ""}${extra}`;
+
+/** Editor blocks ([{id,t,text,level}]) -> parsed blocks with ids; lists are grouped. */
+export function flatToParsed(flat) {
+  const out = [];
+  for (const b of flat) {
+    const text = String(b.text ?? "");
+    if (b.t === "ul" || b.t === "ol") {
+      const last = out.at(-1);
+      if (last && last.t === b.t) {
+        last.items.push(text);
+        last.ids.push(b.id);
+      } else out.push({ t: b.t, items: [text], ids: [b.id] });
+    } else if (b.t === "h") out.push({ t: "h", level: b.level || 1, text, id: b.id });
+    else if (b.t === "stat") {
+      const m = text.match(reStat);
+      out.push(m ? { t: "stat", value: m[1].trim(), label: m[2], id: b.id } : { t: "p", text, id: b.id });
+    } else if (b.t === "quote" || b.t === "front" || b.t === "back") out.push({ t: b.t, text, id: b.id });
+    else out.push({ t: "p", text, id: b.id });
+  }
+  return out;
+}
 
 function blockHTML(b, o = {}) {
   const pieces = (txt) => (o.pdf ? splitText(txt, 650) : [txt]);
@@ -185,12 +217,12 @@ function blockHTML(b, o = {}) {
     case "p":
     case "front":
     case "back":
-      return pieces(b.text).map((x, i) => `<p class="${i ? "cont" : ""}" dir="auto">${multi(x)}</p>`);
+      return pieces(b.text).map((x, i) => `<p class="${i ? "cont" : ""}" dir="auto"${idAttr(b.id)}>${multi(x)}</p>`);
     case "quote":
-      return [`<blockquote dir="auto">${multi(b.text)}</blockquote>`];
+      return [`<blockquote dir="auto"${idAttr(b.id)}>${multi(b.text)}</blockquote>`];
     case "stat":
       return [
-        `<div class="stat"><b dir="ltr">${e(localDigits(b.value, o.dir))}</b><span dir="auto">${e(b.label)}</span></div>`,
+        `<div class="stat"><b dir="ltr"${idAttr(b.id, "value")}>${e(localDigits(b.value, o.dir))}</b><span dir="auto"${idAttr(b.id, "label")}>${e(b.label)}</span></div>`,
       ];
     case "ul":
     case "ol": {
@@ -202,7 +234,7 @@ function blockHTML(b, o = {}) {
           `<${b.t} class="${i ? "cont" : ""}">${part
             .map(
               (x, j) =>
-                `<li dir="auto">${b.t === "ol" ? `<span class="n">${localDigits(i + j + 1, o.dir)}</span>` : ""}${multi(x)}</li>`,
+                `<li dir="auto">${b.t === "ol" ? `<span class="n">${localDigits(i + j + 1, o.dir)}</span>` : ""}<span class="bt"${idAttr(b.ids?.[i + j])}>${multi(x)}</span></li>`,
             )
             .join("")}</${b.t}>`,
         );
@@ -210,7 +242,7 @@ function blockHTML(b, o = {}) {
       return out;
     }
     case "h":
-      return [`<h4 class="sub" dir="auto">${e(b.text)}</h4>`];
+      return [`<h4 class="sub" dir="auto"${idAttr(b.id)}>${e(b.text)}</h4>`];
   }
   return [];
 }
@@ -218,10 +250,11 @@ const blocksHTML = (bs, o) => bs.flatMap((b) => blockHTML(b, o));
 
 function headHTML(m) {
   const meta =
-    m.form === "article" ? `<p class="meta">وقت القراءة: ${minutesLabel(m.minutes)}</p>` : "";
-  return m.title || meta
-    ? `<header class="doc-head">${m.title ? `<h2 dir="auto">${e(m.title)}</h2>` : ""}${meta}</header>`
+    m.form === "article" ? `<p class="meta">وقت القراءة: ${minutesLabel(m.minutes, m.dir)}</p>` : "";
+  const h2 = m.title
+    ? `<h2 dir="auto"${m.titleId != null ? idAttr(m.titleId) : m.editable ? ' data-title="1"' : ""}>${e(m.title)}</h2>`
     : "";
+  return m.title || meta ? `<header class="doc-head">${h2}${meta}</header>` : "";
 }
 
 const chevron = '<i class="chev" aria-hidden="true"></i>';
@@ -249,12 +282,13 @@ function summaryUnits(m, o) {
           units.push(
             `<ul class="points">${b.items
               .slice(i, i + size)
-              .map((x) => `<li dir="auto">${multi(x)}</li>`)
+              .map((x, j) => `<li dir="auto"><span class="bt"${idAttr(b.ids?.[i + j])}>${multi(x)}</span></li>`)
               .join("")}</ul>`,
           );
-      } else if (b.t === "p") {
+      } else if (b.t === "p" || b.t === "front" || b.t === "back") {
+        const parts = o.pdf ? splitText(b.text, 650) : [b.text];
         units.push(
-          ...blockHTML(b, o).map((x) => `<ul class="points"><li>${x.replace(/^<p[^>]*>|<\/p>$/g, "")}</li></ul>`),
+          ...parts.map((x) => `<ul class="points"><li dir="auto"><span class="bt"${idAttr(b.id)}>${multi(x)}</span></li></ul>`),
         );
       } else units.push(...blockHTML(b, o));
     }
@@ -277,51 +311,68 @@ function keepWithNext(units) {
 
 /* ---------- Flashcards ---------- */
 /**
- * Blocks -> [{ front, back (html), big }].
+ * Blocks -> [{ front, frontId, frontPart, sep, big, back (html) }].
  * Heading or "وجه" block = front; following "ظهر" blocks (and, after a heading, any blocks) = back.
  * Other items split at ":" or "—" into front/back. Nothing is dropped.
  */
 export function toFlashcards(m) {
   const dir = m.dir;
   const cards = [];
-  const item = (text) => {
-    const { title, detail } = splitTitle(text);
-    cards.push({ front: title, back: detail ? `<p dir="auto">${multi(detail)}</p>` : "" });
+  const backP = (text, id, part, sep) =>
+    `<p dir="auto"${idAttr(id, part, sep != null ? ` data-sep="${e(sep)}"` : "")}>${multi(text)}</p>`;
+  const item = (text, id) => {
+    const { title, detail, sep, derived } = splitTitle(text);
+    if (derived) cards.push({ front: title, back: backP(detail, null) });
+    else if (!detail) cards.push({ front: title, frontId: id, back: "" });
+    else cards.push({ front: title, frontId: id, frontPart: "front", sep, back: backP(detail, id, "back") });
   };
   let cur = null;
   for (const b of m.all) {
     if (b.t === "h" || b.t === "front") {
-      cur = { front: b.text, parts: [], mode: b.t };
+      cur = { front: b.text, frontId: b.id, parts: [], mode: b.t };
       cards.push(cur);
-    } else if (b.t === "back" && cur) cur.parts.push(`<p dir="auto">${multi(b.text)}</p>`);
+    } else if (b.t === "back" && cur) cur.parts.push(backP(b.text, b.id));
     else if (cur && cur.mode === "h") cur.parts.push(...blockHTML(b, { dir }));
     else {
       cur = null;
-      if (b.t === "ul" || b.t === "ol") b.items.forEach(item);
+      if (b.t === "ul" || b.t === "ol") b.items.forEach((x, j) => item(x, b.ids?.[j]));
       else if (b.t === "stat")
-        cards.push({ front: localDigits(b.value, dir), back: `<p dir="auto">${e(b.label)}</p>`, big: true });
-      else if (b.t === "quote") cards.push({ front: b.text, back: "" });
-      else item(b.text);
+        cards.push({
+          front: localDigits(b.value, dir),
+          frontId: b.id,
+          frontPart: "value",
+          big: true,
+          back: backP(b.label, b.id, "label"),
+        });
+      else if (b.t === "quote") cards.push({ front: b.text, frontId: b.id, back: "" });
+      else item(b.text, b.id);
     }
   }
-  return cards.map((c) => ({ front: c.front, big: !!c.big, back: c.back ?? c.parts.join("") }));
+  return cards.map((c) => ({
+    front: c.front,
+    frontId: c.frontId ?? null,
+    frontPart: c.frontPart || "",
+    sep: c.sep ?? null,
+    big: !!c.big,
+    back: c.back ?? c.parts.join(""),
+  }));
 }
 
 function fcFront(c, i, dir) {
   const n = localDigits(String(i + 1).padStart(2, "0"), dir);
+  const attrs = idAttr(c.frontId, c.frontPart, c.sep != null ? ` data-sep="${e(c.sep)}"` : "");
   return `<span class="num">${n}</span>${
-    c.big ? `<b class="bigv" dir="ltr">${e(c.front)}</b>` : `<h3 dir="auto">${multi(c.front)}</h3>`
+    c.big ? `<b class="bigv" dir="ltr"${attrs}>${e(c.front)}</b>` : `<h3 dir="auto"${attrs}>${multi(c.front)}</h3>`
   }`;
 }
 function flashcardHTML(c, i, o) {
   if (o.pdf)
-    return `<article class="card fc-print"><div class="fc-p-front">${fcFront(c, i, o.dir)}</div>${
+    return `<article class="card fc-print"><div class="fc-p-front">${fcFront({ ...c, frontId: null }, i, o.dir)}</div>${
       c.back ? `<div class="fc-p-back"><span class="side">الظهر</span>${c.back}</div>` : ""
     }</article>`;
   if (!c.back)
     return `<article class="fc static"><div class="fc-face fc-front">${fcFront(c, i, o.dir)}</div></article>`;
-  const label = e(`بطاقة: ${c.front.slice(0, 80)}. اضغط لقلبها`);
-  return `<article class="fc"><div class="fc-in" role="button" tabindex="0" aria-pressed="false" aria-label="${label}"><div class="fc-face fc-front">${fcFront(c, i, o.dir)}<span class="hint">اضغط للقلب</span></div><div class="fc-face fc-back" aria-hidden="true"><span class="side">الظهر</span>${c.back}</div></div></article>`;
+  return `<article class="fc"><div class="fc-in" role="group"><div class="fc-face fc-front">${fcFront(c, i, o.dir)}</div><div class="fc-face fc-back" aria-hidden="true"><span class="side">الظهر</span>${c.back}</div></div><button type="button" class="fc-flip" aria-pressed="false" aria-label="اقلب البطاقة">اقلب</button></article>`;
 }
 
 /* ---------- Article ---------- */
@@ -330,7 +381,7 @@ const tocHTML = (m, interactive) =>
   `<nav class="toc"${interactive ? ' aria-label="المحتويات"' : ""}><h3 class="label">المحتويات</h3><ol>${m.sections
     .map(
       (s, i) =>
-        `<li class="lv${s.level}"><a href="#${slug(i)}"${interactive ? ` data-goto="${slug(i)}"` : ""}><span class="n">${localDigits(i + 1, m.dir)}</span>${e(s.title)}</a></li>`,
+        `<li class="lv${s.level}"><a href="#${slug(i)}"${interactive ? ` data-goto="${slug(i)}"` : ""}${s.hid != null ? ` data-toc-for="${s.hid}"` : ""}><span class="n">${localDigits(i + 1, m.dir)}</span><span class="tt">${e(s.title)}</span></a></li>`,
     )
     .join("")}</ol></nav>`;
 
@@ -338,12 +389,12 @@ function articleSections(m, o) {
   const out = [];
   if (m.lead.length) out.push({ units: blocksHTML(m.lead, o), lead: true });
   m.sections.forEach((s, i) => {
-    out.push({ id: slug(i), title: s.title, level: s.level, units: blocksHTML(s.blocks, o) });
+    out.push({ id: slug(i), hid: s.hid, title: s.title, level: s.level, units: blocksHTML(s.blocks, o) });
   });
   return out;
 }
 
-/** Screen HTML (interactive). */
+/** Screen HTML (interactive). Pass state.blocks (editor blocks) to make elements editable. */
 export function renderDocument(state) {
   const m = buildModel(state);
   if (!m.title && !m.blocks.length) return "";
@@ -363,16 +414,16 @@ export function renderDocument(state) {
       .map((s) =>
         s.lead
           ? `<div class="lead">${s.units.join("")}</div>`
-          : `<section class="sec" id="${s.id}" data-open="true"><button class="sec-head lv${s.level}" type="button" aria-expanded="true"><h3 dir="auto">${e(s.title)}</h3>${chevron}</button><div class="sec-body"><div class="sec-inner">${s.units.join("")}</div></div></section>`,
+          : `<section class="sec" id="${s.id}" data-open="true"><div class="sec-head lv${s.level}"><h3 dir="auto"${idAttr(s.hid)}>${e(s.title)}</h3><button class="chev-btn" type="button" aria-expanded="true" aria-label="طيّ القسم">${chevron}</button></div><div class="sec-body"><div class="sec-inner">${s.units.join("")}</div></div></section>`,
       )
       .join("")}</div></div>`;
   }
   return `<div class="document form-${m.form}" dir="${m.dir}">${headHTML(m)}${body}</div>`;
 }
 
-/** PDF model: header + non-splittable units, paginated by the exporter. */
+/** PDF model: header + non-splittable units, paginated by the exporter. No ids, no editing. */
 export function renderPdfModel(state) {
-  const m = buildModel(state);
+  const m = buildModel({ ...state, blocks: undefined });
   const o = { pdf: true, dir: m.dir };
   let units = [];
   if (m.form === "summary") units = summaryUnits(m, o);

@@ -1,5 +1,7 @@
 import { renderDocument, examples, sanitizeState, countWords, forms, buildModel, toFlashcards, localDigits } from "./core.js";
 import { createEditor } from "./editor.js";
+import { createMini } from "./mini.js";
+import { bindPreviewEditing, focusTarget } from "./preview-edit.js";
 import { library, relativeTime } from "./library.js";
 import { openStudy } from "./study.js";
 
@@ -145,13 +147,17 @@ function flip(f) {
   const card = f.closest(".fc");
   const on = !card.classList.contains("flipped");
   card.classList.toggle("flipped", on);
-  f.setAttribute("aria-pressed", String(on));
+  (card.querySelector(".fc-flip") || f).setAttribute("aria-pressed", String(on));
   f.querySelector(".fc-back")?.setAttribute("aria-hidden", String(!on));
   f.querySelector(".fc-front")?.setAttribute("aria-hidden", String(on));
 }
 document.addEventListener("click", (e) => {
-  const f = e.target.closest(".fc-in");
-  if (f) flip(f);
+  const btn = e.target.closest(".fc-flip");
+  const zone = e.target.closest(".fc-in");
+  if (!btn && !zone) return;
+  // tapping card text edits it; only the button or the empty part of the card flips
+  if (!btn && zone.closest("#preview") && e.target.closest("[data-block-id]")) return;
+  flip((btn || zone).closest(".fc").querySelector(".fc-in"));
 });
 document.addEventListener("keydown", (e) => {
   if ((e.key === " " || e.key === "Enter") && e.target.classList?.contains("fc-in")) {
@@ -170,7 +176,7 @@ let io;
 function render({ enter = false, switching = false } = {}) {
   setTheme(el.preview);
   document.body.classList.toggle("motion-off", !motionOn());
-  const html = state.source.trim() || state.title.trim() ? renderDocument(state) : "";
+  const html = state.source.trim() || state.title.trim() ? renderDocument({ ...state, blocks: editor.getBlocks() }) : "";
   if (html === lastHTML && !enter && !switching) return;
   lastHTML = html;
   const keep = switching
@@ -206,6 +212,7 @@ function render({ enter = false, switching = false } = {}) {
       });
     prevUnits = now;
     setupReveal();
+    previewEdit.enable();
   } else prevUnits = [];
   if (motionOn() && (enter || switching)) el.preview.classList.add(switching ? "switching" : "enter");
 }
@@ -244,7 +251,7 @@ el.preview.addEventListener("click", (e) => {
     all.forEach((c) => setOpen(c, open));
     return syncToggleLabel();
   }
-  const head = e.target.closest(".sec-head");
+  const head = e.target.closest(".chev-btn");
   if (head) {
     const box = head.closest(".sec");
     setOpen(box, box.dataset.open !== "true");
@@ -283,23 +290,37 @@ function save() {
   }, 400);
   scheduleLibSave();
 }
-function changed() {
+function changed(info = {}) {
   const words = countWords(state.source);
   el.count.textContent = words ? `${words} كلمة` : "";
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(render, 120);
+  if (!info.textOnly) renderTimer = setTimeout(render, 120); // typing in the preview must not rebuild it
   syncDocUI();
   save();
 }
 const editor = createEditor($("#blocks"), {
-  onChange: (src) => {
+  onChange: (src, info) => {
     state.source = src;
-    changed();
+    changed(info);
   },
   menu: $("#typemenu"),
-  mini: $("#mini"),
   typebar: $("#typebar"),
 });
+const previewEdit = bindPreviewEditing(el.preview, {
+  editor,
+  onTitle: (text) => {
+    state.title = text;
+    el.title.value = text;
+    changed({ textOnly: true });
+  },
+  afterOp: (target) => afterPreviewOp(target),
+});
+function afterPreviewOp(target) {
+  clearTimeout(renderTimer);
+  render();
+  focusTarget(el.preview, target);
+}
+createMini($("#mini"), { editor, editorRoot: $("#blocks"), preview: el.preview, afterPreviewOp });
 el.title.addEventListener("input", () => ((state.title = el.title.value), changed()));
 
 function syncControls() {
@@ -348,7 +369,8 @@ function loadExample(name) {
   openExample(name);
   if (innerWidth <= 900) setPanel("preview");
 }
-$("#undo").addEventListener("click", () => editor.undo());
+$("#undo").addEventListener("click", () => editor.undo(true));
+$("#redo").addEventListener("click", () => editor.redo(true));
 const proposal = $("#proposal");
 $("#arrange").addEventListener("click", () => {
   if (editor.isEmpty()) return toast("ألصق نصًّا أولًا ثم اضغط «ترتيب سريع».");

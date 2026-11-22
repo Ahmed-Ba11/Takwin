@@ -1,7 +1,7 @@
 import { mkdir, cp, rm, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
-const files = ['index.html','app.js','core.js','styles.css','fonts.css','pdf.js','blocks.js','editor.js','study.js','library.js'];
+const files = ['index.html','app.js','core.js','styles.css','fonts.css','pdf.js','blocks.js','editor.js','study.js','library.js','mini.js','preview-edit.js'];
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
 

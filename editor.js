@@ -18,9 +18,13 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
   const dismissed = new Set();
   let proposed = new Set();
   let menuIndex = 0;
+  let ext = false; // true while an operation comes from the preview (no focus stealing)
+  let target = null; // where the caret should go after an operation: { id, start, end }
+  let redoStack = [];
 
   /* ---------- history ---------- */
   function record(coalesce) {
+    redoStack = [];
     const now = Date.now();
     if (!(coalesce && now - lastTyped < 900)) {
       history.push(snap);
@@ -29,7 +33,7 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     lastTyped = coalesce ? now : 0;
     snap = ser();
   }
-  const emit = () => onChange(blocksToSource(blocks));
+  const emit = (kind) => onChange(blocksToSource(blocks), { textOnly: kind === "text" });
 
   /* ---------- DOM ---------- */
   const rows = () => [...root.querySelectorAll(".blk")];
@@ -58,7 +62,7 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     numbering();
     if (focus !== null) {
       cur = Math.max(0, Math.min(focus, blocks.length - 1));
-      focusAt(cur, caretAt);
+      if (!ext) focusAt(cur, caretAt);
     }
     markCurrent();
   }
@@ -105,6 +109,7 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     proposed.delete(b.id);
     record(false);
     render(keepFocus ? i : null, "end");
+    target = { id: b.id, start: "end", end: "end" };
     emit();
   }
   function split(i, start, end) {
@@ -116,9 +121,11 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     }
     const next = { h: "p", stat: "p", front: "back", back: "front" }[b.t] || b.t;
     b.text = left;
-    blocks.splice(i + 1, 0, newBlock(next, right));
+    const nb = newBlock(next, right);
+    blocks.splice(i + 1, 0, nb);
     record(false);
     render(i + 1, 0);
+    target = { id: nb.id, start: 0, end: 0 };
     emit();
   }
   function backspaceAtStart(i) {
@@ -131,6 +138,7 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     blocks.splice(i, 1);
     record(false);
     render(i - 1, at);
+    target = { id: prev.id, start: at, end: at };
     emit();
   }
   function pasteText(i, text) {
@@ -182,6 +190,104 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     render(a, s);
     emit();
     return true;
+  }
+
+  /* ---------- id-based operations (used by the preview and the floating toolbar) ---------- */
+  const idx = (id) => blocks.findIndex((b) => b.id === id);
+  const quietly = (quiet, fn) => {
+    const was = ext;
+    ext = !!quiet;
+    target = null;
+    try {
+      fn();
+    } finally {
+      ext = was;
+    }
+    return target;
+  };
+  function focusRange(tg) {
+    const i = idx(tg.id);
+    if (i < 0) return;
+    cur = i;
+    const t = txtOf(i);
+    t.focus();
+    const len = t.textContent.length;
+    const s = tg.start === "end" ? len : Math.min(tg.start, len);
+    const e2 = tg.end === "end" ? len : Math.min(tg.end, len);
+    const r = document.createRange();
+    const node = t.firstChild;
+    if (node) {
+      r.setStart(node, s);
+      r.setEnd(node, e2);
+    } else r.setStart(t, 0);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    markCurrent();
+  }
+  function retypeRange(i, s, e2, t) {
+    const b = blocks[i];
+    const len = b.text.length;
+    if (s === e2 || (s <= 0 && e2 >= len)) {
+      if (b.t !== t) {
+        b.t = t;
+        b.level = 1;
+        proposed.delete(b.id);
+        record(false);
+        render(null);
+        emit();
+      }
+      target = { id: b.id, start: s, end: e2 };
+    } else {
+      const orig = b.t;
+      const before = b.text.slice(0, s);
+      const mid = b.text.slice(s, e2);
+      const after = b.text.slice(e2);
+      let midBlock;
+      if (s <= 0) {
+        b.text = mid;
+        b.t = t;
+        b.level = 1;
+        midBlock = b;
+        if (after) blocks.splice(i + 1, 0, newBlock(orig, after));
+      } else {
+        b.text = before;
+        midBlock = newBlock(t, mid);
+        const ins = [midBlock];
+        if (after) ins.push(newBlock(orig, after));
+        blocks.splice(i + 1, 0, ...ins);
+      }
+      record(false);
+      render(null);
+      emit();
+      target = { id: midBlock.id, start: 0, end: mid.length };
+    }
+    if (!ext) focusRange(target);
+  }
+  function removeBlock(i) {
+    if (blocks.length === 1) {
+      blocks[0].text = "";
+      blocks[0].t = "p";
+      record(false);
+      render(null);
+      target = { id: blocks[0].id, start: 0, end: 0 };
+    } else {
+      blocks.splice(i, 1);
+      record(false);
+      render(null);
+      const j = Math.max(0, i - 1);
+      target = { id: blocks[j].id, start: "end", end: "end" };
+    }
+    emit();
+    if (!ext) focusRange(target);
+  }
+  function deleteText(i, s, e2) {
+    const b = blocks[i];
+    b.text = b.text.slice(0, s) + b.text.slice(e2);
+    record(false);
+    render(null);
+    target = { id: b.id, start: s, end: s };
+    emit();
+    if (!ext) focusRange(target);
   }
 
   /* ---------- events ---------- */
@@ -254,9 +360,13 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
       e.preventDefault();
       return;
     }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
       e.preventDefault();
-      return undo();
+      return e.shiftKey ? redo() : undo();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+      e.preventDefault();
+      return redo();
     }
     if (e.key === "/" && !t.textContent) {
       e.preventDefault();
@@ -375,33 +485,6 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     if (!menu.hidden && !menu.contains(e.target) && !e.target.closest(".badge")) menu.hidden = true;
   });
 
-  /* ---------- floating mini toolbar on selection ---------- */
-  if (mini) {
-    const MINI = ["h", "p", "ul", "ol", "quote", "stat"];
-    mini.innerHTML = MINI.map((t) => `<button type="button" data-type="${t}">${TYPES[t].label}</button>`).join("");
-    mini.addEventListener("mousedown", (e) => e.preventDefault());
-    mini.addEventListener("click", (e) => {
-      const b = e.target.closest("[data-type]");
-      if (b) {
-        mini.hidden = true;
-        setType(cur, b.dataset.type);
-      }
-    });
-    document.addEventListener("selectionchange", () => {
-      const sel = getSelection();
-      const node = sel.anchorNode;
-      if (!sel.rangeCount || sel.isCollapsed || !node || !root.contains(node)) {
-        mini.hidden = true;
-        return;
-      }
-      const r = sel.getRangeAt(0).getBoundingClientRect();
-      mini.hidden = false;
-      const w = mini.offsetWidth;
-      mini.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
-      mini.style.top = `${Math.max(8, r.top - mini.offsetHeight - 8)}px`;
-    });
-  }
-
   /* ---------- type bar (desktop toolbar, sticky chips on mobile) ---------- */
   if (typebar) {
     typebar.innerHTML = TYPE_ORDER.map((t) => `<button type="button" data-type="${t}" aria-pressed="false"><i class="dot" data-t="${t}"></i>${TYPES[t].label}</button>`).join("");
@@ -413,18 +496,35 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
   }
 
   /* ---------- public API ---------- */
-  function undo() {
+  function undo(quiet = false) {
     if (!history.length) return;
+    redoStack.push(snap);
     blocks = deser(history.pop());
     snap = ser();
     proposed = new Set();
+    const was = ext;
+    ext = quiet;
     render(Math.min(cur, blocks.length - 1), "end");
+    ext = was;
+    emit();
+  }
+  function redo(quiet = false) {
+    if (!redoStack.length) return;
+    history.push(snap);
+    blocks = deser(redoStack.pop());
+    snap = ser();
+    proposed = new Set();
+    const was = ext;
+    ext = quiet;
+    render(Math.min(cur, blocks.length - 1), "end");
+    ext = was;
     emit();
   }
   return {
     setSource(src) {
       blocks = sourceToBlocks(src);
       history = [];
+      redoStack = [];
       snap = ser();
       proposed = new Set();
       dismissed.clear();
@@ -432,8 +532,25 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
       render();
     },
     getSource: () => blocksToSource(blocks),
+    getBlocks: () => blocks.map((b) => ({ ...b })),
+    /** Preview typing: updates one block's text without rebuilding anything. */
+    setTextById(id, text) {
+      const i = idx(id);
+      if (i < 0) return;
+      blocks[i].text = text;
+      const t = txtOf(i);
+      if (t && t !== document.activeElement) t.textContent = text;
+      record(true);
+      emit("text");
+    },
+    splitById: (id, s, e2) => quietly(true, () => split(idx(id), s, e2)),
+    backspaceById: (id) => quietly(true, () => idx(id) >= 0 && backspaceAtStart(idx(id))),
+    retypeById: (id, s, e2, t, o = {}) => quietly(o.quiet, () => idx(id) >= 0 && retypeRange(idx(id), s, e2, t)),
+    removeById: (id, o = {}) => quietly(o.quiet, () => idx(id) >= 0 && removeBlock(idx(id))),
+    deleteRange: (id, s, e2, o = {}) => quietly(o.quiet, () => idx(id) >= 0 && deleteText(idx(id), s, e2)),
     clearAll,
     undo,
+    redo,
     focus: () => focusAt(cur, "end"),
     isEmpty: () => blocks.every((b) => !b.text.trim()),
     /** «ترتيب سريع»: applies suggested types to all plain lines; returns how many changed. */
