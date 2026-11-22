@@ -515,3 +515,11 @@ body { overflow-x: clip; }
 .study-count, .fc-face .num, .card .num, .n, .stat b, .bigv { unicode-bidi: isolate; }
 .study-count { direction: ltr; }
 @media (max-width: 900px) { .editor { overflow: visible; } }
+
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.banner { order: -4; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 14px; border-radius: 16px; background: #f1e6cf; animation: fade-in 0.4s var(--ease); }
+.banner[hidden], .resume[hidden], .try-row[hidden] { display: none; }
+.banner-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.resume { order: -3; align-self: flex-start; min-height: 44px; color: var(--ink); border-color: var(--line); }
+.try-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 14px; flex: none; }
+.try-row button { min-height: 44px; padding: 4px 8px; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }

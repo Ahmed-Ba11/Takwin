@@ -25,7 +25,7 @@
         <div class="hero-copy">
           <h1>حوّل نصّك إلى ملخّص مرتّب أو بطاقات أو مقال</h1>
           <p>اكتب أو الصق نصّك، واختر الشكل، واحفظه PDF بالتنسيق نفسه.</p>
-          <a class="button primary big" href="#write">ابدأ الكتابة</a>
+          <div class="hero-actions"><a class="button primary big" href="#write" data-new>ابدأ الكتابة</a><button class="button ghost big" type="button" data-home-example>شاهد مثالًا</button></div>
         </div>
         <div class="demo" aria-label="مثال: النص نفسه بثلاثة أشكال">
           <div class="mini-editor glass-card" aria-hidden="true">
@@ -89,6 +89,14 @@
       <div class="workspace" data-panel="editor">
         <section class="editor glass-card" aria-label="الكتابة">
           <label for="title" class="sr">العنوان</label>
+          <div id="example-banner" class="banner" hidden>
+            <strong>هذا مثال للتجربة</strong>
+            <span class="banner-actions">
+              <button type="button" class="button primary small" id="ex-own">ابدأ نصّي الخاص</button>
+              <button type="button" class="button ghost small" id="ex-copy">انسخ المثال لأعدّل عليه</button>
+            </span>
+          </div>
+          <button id="resume" class="chip resume" type="button" hidden>متابعة مسودتك السابقة</button>
           <input id="title" type="text" placeholder="العنوان" autocomplete="off" />
           <div id="proposal" class="proposal" hidden>
             <span id="proposal-text"></span>
@@ -97,6 +105,12 @@
           </div>
           <div id="blocks" class="blocks" aria-label="النص"></div>
           <div id="typebar" class="typebar" role="toolbar" aria-label="نوع السطر الحالي"></div>
+          <div id="try-row" class="try-row" hidden>
+            <span class="muted">أو جرّب مثالًا:</span>
+            <button type="button" data-example="summary">ملخّص</button>
+            <button type="button" data-example="cards">بطاقات</button>
+            <button type="button" data-example="article">مقال</button>
+          </div>
           <details class="legend">
             <summary>كيف أنسّق؟</summary>
             <ul>

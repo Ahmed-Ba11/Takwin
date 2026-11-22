@@ -5,6 +5,22 @@ import { openStudy } from "./study.js";
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const KEY = "takween-v5";
+const PREV = "takween-v5-prev";
+const hasText = (s) => !!(s && (s.source.trim() || s.title.trim()));
+const readPrev = () => {
+  try {
+    const p = sanitizeState(JSON.parse(localStorage.getItem(PREV)));
+    return hasText(p) && !p.example ? p : null;
+  } catch {
+    return null;
+  }
+};
+const writePrev = (p) => {
+  try {
+    if (p) localStorage.setItem(PREV, JSON.stringify(p));
+    else localStorage.removeItem(PREV);
+  } catch {}
+};
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
 let state = sanitizeState(null);
@@ -21,6 +37,73 @@ const el = {
   workspace: $(".workspace"),
 };
 
+/* ---------- Documents: new, previous, example ---------- */
+let pending = null; // set by "start writing" / "see an example" clicks
+const blank = () => sanitizeState({ form: state.form, theme: state.theme, motion: state.motion });
+function saveNow() {
+  clearTimeout(saveTimer);
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {}
+}
+function stashDraft() {
+  if (hasText(state) && !state.example) writePrev(state);
+}
+function applyDoc(focus) {
+  editor.setSource(state.source);
+  lastHTML = null;
+  syncControls();
+  syncDocUI();
+  render({ enter: true });
+  if (focus) editor.focus();
+}
+function newDoc() {
+  stashDraft();
+  state = blank();
+  saveNow();
+  applyDoc(true);
+}
+function openExample(name) {
+  const ex = examples[name];
+  stashDraft();
+  state = sanitizeState({ ...ex, theme: state.theme, motion: state.motion, example: name });
+  saveNow();
+  applyDoc(false);
+}
+function syncDocUI() {
+  $("#example-banner").hidden = !state.example;
+  $("#resume").hidden = !readPrev();
+  $("#try-row").hidden = !!state.example || hasText(state);
+}
+$("#resume").addEventListener("click", () => {
+  const prev = readPrev();
+  if (!prev) return;
+  stashDraft();
+  if (!hasText(state) || state.example) writePrev(null);
+  state = prev;
+  saveNow();
+  applyDoc(false);
+});
+$("#ex-own").addEventListener("click", () => {
+  state = blank();
+  saveNow();
+  applyDoc(true);
+});
+$("#ex-copy").addEventListener("click", () => {
+  state.example = null;
+  saveNow();
+  syncDocUI();
+  toast("صار المثال مسودتك. يمكنك تعديله.");
+});
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-new]")) pending = "new";
+  else if (e.target.closest("[data-home-example]")) {
+    pending = "summary";
+    if (location.hash === "#write") route();
+    else location.hash = "#write";
+  }
+});
+
 /* ---------- Views ---------- */
 function route() {
   const write = location.hash === "#write";
@@ -28,8 +111,13 @@ function route() {
   $("#write").hidden = !write;
   $("#back").hidden = !write;
   document.title = write ? "الكتابة — تكوين" : "تكوين — نصّك بشكل مرتّب";
-  if (write) render({ enter: true });
-  else window.scrollTo(0, 0);
+  if (write) {
+    if (pending === "new") newDoc();
+    else if (pending) openExample(pending);
+    pending = null;
+    syncDocUI();
+    render({ enter: true });
+  } else window.scrollTo(0, 0);
   syncSeg($("#form-switch"));
   syncSeg($(".demo-tabs"));
 }
@@ -70,7 +158,7 @@ document.addEventListener("keydown", (e) => {
 
 /* ---------- Rendering ---------- */
 function emptyState() {
-  return `<div class="empty"><h2>ابدأ بكتابة نصّك</h2><p>اكتب في الحقل، أو جرّب أحد الأمثلة.</p><div class="empty-actions"><button data-example="summary">مثال ملخّص</button><button data-example="cards">مثال بطاقات</button><button data-example="article">مثال مقال</button></div></div>`;
+  return `<div class="empty"><h2>ابدأ بكتابة نصّك</h2><p>اكتب في الحقل وسترى النتيجة هنا.</p></div>`;
 }
 let lastHTML = "";
 let prevUnits = [];
@@ -190,6 +278,7 @@ function changed() {
   el.count.textContent = words ? `${words} كلمة` : "";
   clearTimeout(renderTimer);
   renderTimer = setTimeout(render, 120);
+  syncDocUI();
   save();
 }
 const editor = createEditor($("#blocks"), {
@@ -246,15 +335,7 @@ document.addEventListener("click", (e) => {
 
 /* ---------- Editor actions ---------- */
 function loadExample(name) {
-  const ex = examples[name];
-  if (!ex) return;
-  state.title = ex.title;
-  state.form = ex.form;
-  state.source = ex.source;
-  editor.setSource(ex.source);
-  syncControls();
-  render({ switching: true });
-  save();
+  openExample(name);
   if (innerWidth <= 900) setPanel("preview");
 }
 $("#undo").addEventListener("click", () => editor.undo());

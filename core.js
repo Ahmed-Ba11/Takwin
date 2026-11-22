@@ -474,6 +474,7 @@ export function sanitizeState(d) {
     form: Object.hasOwn(forms, o.form) ? o.form : "summary",
     theme: Object.hasOwn(themes, o.theme) ? o.theme : "mist",
     motion: o.motion !== false,
+    example: Object.hasOwn(examples, o.example) ? o.example : null,
   };
 }
 

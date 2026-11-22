@@ -15,6 +15,9 @@ Simple clear MSA copy everywhere (no slogans, no English decorative labels); NO 
 ## Round 2 (done)
 Block editor (`blocks.js`, `editor.js`): contenteditable row per block, source still plain markup (`??`/`!!` = card front/back). Flip cards (`.fc`, 3D) + `study.js`. SVG logo, back button, View Transitions, scroll reveal, «ترتيب سريع» (`arrange`). RTL: Arabic-Indic digits + isolated ٪ (`localDigits`). html2canvas cannot do 3D flips, so PDF cards print front above back (`.fc-print`).
 
+## Round 3 (done): blank start vs examples
+«ابدأ الكتابة» (`[data-new]`) always opens a blank doc; the previous draft is stashed under localStorage `takween-v5-prev` and offered via the «متابعة مسودتك السابقة» chip (`#resume`). «شاهد مثالًا» / the try-row open an example flagged `state.example` (banner `#example-banner`: «ابدأ نصّي الخاص» / «انسخ المثال لأعدّل عليه»); examples never overwrite a real draft. Reloading `#write` continues the current doc. Logic: `newDoc`, `openExample`, `syncDocUI` in app.js.
+
 ## State
 Home, workspace (desktop + 375px), 3 forms × 3 themes and PDF export verified (see docs/QA.md). Not verified: real iOS/Safari, share sheet.
 

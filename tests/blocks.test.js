@@ -60,3 +60,11 @@ test("every example stays readable in every form", () => {
   for (const ex of Object.values(examples))
     for (const form of ["summary", "cards", "article"]) assert.ok(renderDocument({ ...ex, form }).length > 50);
 });
+
+import { sanitizeState } from "../core.js";
+test("saved state keeps the example flag only for real examples", () => {
+  assert.equal(sanitizeState({ example: "cards" }).example, "cards");
+  assert.equal(sanitizeState({ example: "nope" }).example, null);
+  assert.equal(sanitizeState(null).example, null);
+  assert.equal(sanitizeState(null).source, "");
+});
