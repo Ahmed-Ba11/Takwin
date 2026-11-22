@@ -1,5 +1,6 @@
-import { renderDocument, examples, sanitizeState, countWords, forms, buildModel, toFlashcards } from "./core.js";
+import { renderDocument, examples, sanitizeState, countWords, forms, buildModel, toFlashcards, localDigits } from "./core.js";
 import { createEditor } from "./editor.js";
+import { library, relativeTime } from "./library.js";
 import { openStudy } from "./study.js";
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -47,7 +48,7 @@ function saveNow() {
   } catch {}
 }
 function stashDraft() {
-  if (hasText(state) && !state.example) writePrev(state);
+  if (hasText(state) && !state.example && !state.libId) writePrev(state);
 }
 function applyDoc(focus) {
   editor.setSource(state.source);
@@ -106,11 +107,14 @@ document.addEventListener("click", (e) => {
 
 /* ---------- Views ---------- */
 function route() {
-  const write = location.hash === "#write";
-  $("#home").hidden = write;
+  const view = location.hash === "#write" ? "write" : location.hash === "#library" ? "library" : "home";
+  const write = view === "write";
+  $("#home").hidden = view !== "home";
   $("#write").hidden = !write;
-  $("#back").hidden = !write;
-  document.title = write ? "الكتابة — تكوين" : "تكوين — نصّك بشكل مرتّب";
+  $("#library").hidden = view !== "library";
+  $("#back").hidden = view === "home";
+  document.title = write ? "الكتابة — تكوين" : view === "library" ? "مدونتي — تكوين" : "تكوين — نصّك بشكل مرتّب";
+  if (view === "library") renderLibrary({ enter: true });
   if (write) {
     if (pending === "new") newDoc();
     else if (pending) openExample(pending);
@@ -275,7 +279,9 @@ function save() {
     } catch {
       el.status.textContent = "تعذّر الحفظ على الجهاز";
     }
+    if (state.libId && !state.example) el.status.textContent = "";
   }, 400);
+  scheduleLibSave();
 }
 function changed() {
   const words = countWords(state.source);
@@ -374,12 +380,207 @@ $(".mobile-tabs").addEventListener("click", (e) => {
 
 /* ---------- Toast ---------- */
 let toastTimer;
-function toast(msg, ms = 4200) {
+function toast(msg, ms = 4200, action = null) {
   el.toast.textContent = msg;
+  if (action) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "toast-action";
+    b.textContent = action.label;
+    b.onclick = () => {
+      el.toast.classList.remove("show");
+      action.fn();
+    };
+    el.toast.append(b);
+    ms = Math.max(ms, 6000);
+  }
   el.toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.toast.classList.remove("show"), ms);
 }
+
+
+/* ---------- «مدونتي» ---------- */
+const FORM_LABEL = { summary: "ملخّص", cards: "بطاقات", article: "مقال" };
+let libFilter = "all";
+let libQuery = "";
+const escHTML = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+function updateBadge() {
+  const n = library.count();
+  const b = $("#lib-count");
+  b.textContent = localDigits(n);
+  b.hidden = !n;
+}
+library.subscribe(updateBadge);
+library.init().then(updateBadge, () => {});
+
+async function renderLibrary({ enter = false } = {}) {
+  try {
+    await library.init();
+  } catch {}
+  const all = library.list();
+  const q = libQuery.trim().toLowerCase();
+  const items = all.filter(
+    (it) => (libFilter === "all" || it.form === libFilter) && (!q || `${it.title} ${it.source}`.toLowerCase().includes(q)),
+  );
+  $("#lib-empty").hidden = all.length > 0;
+  $("#lib-none").hidden = !(all.length && !items.length);
+  const grid = $("#lib-grid");
+  grid.classList.remove("enter");
+  grid.innerHTML = items
+    .map((it, i) => {
+      const doc = renderDocument({ title: it.title, source: it.source.slice(0, 1500), form: it.form });
+      const name = it.title || "بلا عنوان";
+      return `<article class="lib-card glass-card" data-id="${escHTML(it.id)}" style="--i:${Math.min(i, 10)}"><button class="lib-open" type="button" data-act="open" aria-label="فتح: ${escHTML(name)}"><div class="thumb"><div class="preview theme-${it.theme}">${doc}</div></div><div class="lib-meta"><h3>${escHTML(name)}</h3><div class="lib-sub"><span class="lib-tag">${FORM_LABEL[it.form]}</span><span>${relativeTime(it.updatedAt)}</span></div></div></button><details class="lib-menu"><summary aria-label="خيارات: ${escHTML(name)}">⋯</summary><div class="lib-menu-pop glass-card"><button type="button" data-act="open">فتح</button><button type="button" data-act="dup">نسخة</button><button type="button" data-act="del">حذف</button></div></details></article>`;
+    })
+    .join("");
+  $$(".thumb", grid).forEach((t) => t.style.setProperty("--s", (t.clientWidth || 290) / 620));
+  if (enter && motionOn()) grid.classList.add("enter");
+}
+$("#lib-search").addEventListener("input", (e) => {
+  libQuery = e.target.value;
+  renderLibrary();
+});
+$("#lib-filter").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-f]");
+  if (!b) return;
+  libFilter = b.dataset.f;
+  $$("#lib-filter [data-f]").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+  renderLibrary();
+});
+$("#lib-grid").addEventListener("click", async (e) => {
+  const act = e.target.closest("[data-act]");
+  const card = e.target.closest(".lib-card");
+  if (!act || !card) return;
+  const id = card.dataset.id;
+  card.querySelector(".lib-menu")?.removeAttribute("open");
+  if (act.dataset.act === "open") return openFromLibrary(id);
+  if (act.dataset.act === "dup") {
+    await library.duplicate(id);
+    toast("تم نسخ النص.");
+    return renderLibrary();
+  }
+  if (act.dataset.act === "del") {
+    card.classList.add("leaving");
+    if (motionOn()) await new Promise((r) => setTimeout(r, 280));
+    const removed = await library.remove(id);
+    if (state.libId === id) {
+      state.libId = null;
+      saveNow();
+    }
+    await renderLibrary();
+    if (removed)
+      toast(`حُذف «${removed.title || "بلا عنوان"}»`, 8000, {
+        label: "تراجع",
+        fn: async () => {
+          await library.restore(removed);
+          renderLibrary();
+        },
+      });
+  }
+});
+document.addEventListener("click", (e) => {
+  $$(".lib-menu[open]").forEach((d) => !d.contains(e.target) && d.removeAttribute("open"));
+});
+$("#lib-export").addEventListener("click", () => {
+  const blob = new Blob([library.exportAll()], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `takween-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  toast("تم تنزيل النسخة الاحتياطية.");
+});
+$("#lib-import").addEventListener("click", () => $("#lib-file").click());
+$("#lib-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const r = await library.importAll(await file.text());
+    toast(`أُضيف ${localDigits(r.added)}، وحُدّث ${localDigits(r.updated)}، وتُرك ${localDigits(r.skipped)} لأن عندك نسخة أحدث.`, 7000);
+    renderLibrary();
+  } catch (err) {
+    toast(err.message || "تعذّر قراءة الملف.");
+  }
+});
+
+function openFromLibrary(id) {
+  const it = library.get(id);
+  if (!it) return;
+  stashDraft();
+  state = sanitizeState({ title: it.title, source: it.source, form: it.form, theme: it.theme, motion: state.motion, libId: id });
+  saveNow();
+  applyDoc(false);
+  location.hash = "#write";
+}
+
+/* Save to the library; a linked document then autosaves to its item. */
+let libTimer;
+function libStatus(it) {
+  el.status.textContent = `محفوظ في مدونتي · ${relativeTime(it.updatedAt)}`;
+}
+async function saveToLibrary(manual) {
+  if (!hasText(state)) return manual && toast("اكتب نصًّا أولًا ثم احفظه.");
+  if (state.example) {
+    state.example = null; // saving an example saves a copy
+    state.libId = null;
+    syncDocUI();
+  }
+  const first = !state.libId;
+  try {
+    const it = await library.save({ id: state.libId, title: state.title, form: state.form, theme: state.theme, source: state.source });
+    state.libId = it.id;
+    saveNow();
+    libStatus(it);
+    if (manual)
+      toast(first ? "تم الحفظ في مدونتي." : "تم تحديث النص في مدونتي.", 6000, {
+        label: "عرض في مدونتي",
+        fn: () => (location.hash = "#library"),
+      });
+  } catch {
+    if (manual) toast("تعذّر الحفظ في مدونتي.");
+  }
+}
+function scheduleLibSave() {
+  clearTimeout(libTimer);
+  if (!state.libId || state.example || !hasText(state)) return;
+  libTimer = setTimeout(() => saveToLibrary(false), 700);
+}
+$("#lib-save").addEventListener("click", () => saveToLibrary(true));
+$("#lib-save-mobile").addEventListener("click", () => saveToLibrary(true));
+setInterval(() => {
+  const it = state.libId && library.get(state.libId);
+  if (it && !$("#write").hidden) libStatus(it);
+}, 30000);
+
+/* ---------- Clear text ---------- */
+function clearText() {
+  if (!hasText(state)) return toast("لا يوجد نص لمسحه.");
+  const snap = { title: state.title, source: state.source };
+  el.title.value = "";
+  state.title = "";
+  editor.clearAll();
+  toast("مُسح النص", 8000, {
+    label: "تراجع",
+    fn: () => {
+      state.title = snap.title;
+      state.source = snap.source;
+      el.title.value = snap.title;
+      editor.setSource(snap.source);
+      changed();
+    },
+  });
+}
+$("#clear").addEventListener("click", clearText);
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Backspace" && !$("#write").hidden) {
+    e.preventDefault();
+    clearText();
+  }
+});
 
 /* ---------- PDF ---------- */
 let exporting = false;

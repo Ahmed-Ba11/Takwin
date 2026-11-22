@@ -18,6 +18,9 @@ Block editor (`blocks.js`, `editor.js`): contenteditable row per block, source s
 ## Round 3 (done): blank start vs examples
 «ابدأ الكتابة» (`[data-new]`) always opens a blank doc; the previous draft is stashed under localStorage `takween-v5-prev` and offered via the «متابعة مسودتك السابقة» chip (`#resume`). «شاهد مثالًا» / the try-row open an example flagged `state.example` (banner `#example-banner`: «ابدأ نصّي الخاص» / «انسخ المثال لأعدّل عليه»); examples never overwrite a real draft. Reloading `#write` continues the current doc. Logic: `newDoc`, `openExample`, `syncDocUI` in app.js.
 
+## Round 4 (done): «مدونتي» library + clear text
+`library.js`: `createLibrary(backend)` (list/get/save/remove/restore/duplicate/exportAll/importAll, subscribe), backends `autoBackend()` (IndexedDB -> localStorage fallback) and `memoryBackend()` for tests; swap the backend to move to a server later. Route `#library` (app.js `renderLibrary`, thumbnails = scaled `renderDocument`), header link + count badge, search/filter chips, delete with undo toast, backup export/import (merge by id, newer never overwritten). Save: «حفظ في مدونتي» (`saveToLibrary`), doc linked via `state.libId` then autosaves (`scheduleLibSave`; empty docs are never autosaved; examples save as a copy). Clear: «مسح النص» (`clearText`, toast with undo, Ctrl/Cmd+Shift+Backspace); editor Ctrl+A + Delete and cross-block delete (`editor.js`: `allSel`, `deleteAcross`, `clearAll`). New files must be added to `tools/build.mjs` `files` (cache-busting `?v=` hash).
+
 ## State
 Home, workspace (desktop + 375px), 3 forms × 3 themes and PDF export verified (see docs/QA.md). Not verified: real iOS/Safari, share sheet.
 

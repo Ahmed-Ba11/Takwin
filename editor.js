@@ -144,6 +144,46 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     emit();
   }
 
+  /* ---------- select all / clear / cross-block delete ---------- */
+  let allSel = false;
+  const setAllSel = (on) => {
+    allSel = on;
+    root.classList.toggle("all-sel", on);
+  };
+  function clearAll() {
+    record(false);
+    blocks = [newBlock()];
+    proposed = new Set();
+    setAllSel(false);
+    render(0, 0);
+    emit();
+  }
+  function offsetIn(txt, node, off) {
+    const pre = document.createRange();
+    pre.selectNodeContents(txt);
+    pre.setEnd(node, off);
+    return pre.toString().length;
+  }
+  function deleteAcross() {
+    const sel = getSelection();
+    if (!sel.rangeCount || sel.isCollapsed) return false;
+    const r = sel.getRangeAt(0);
+    const hit = rows().map((row, i) => (r.intersectsNode(row) ? i : -1)).filter((i) => i >= 0);
+    if (hit.length < 2) return false;
+    const a = hit[0];
+    const b = hit.at(-1);
+    const ta = txtOf(a);
+    const tb = txtOf(b);
+    const s = ta.contains(r.startContainer) ? offsetIn(ta, r.startContainer, r.startOffset) : 0;
+    const e = tb.contains(r.endContainer) ? offsetIn(tb, r.endContainer, r.endOffset) : blocks[b].text.length;
+    blocks[a].text = blocks[a].text.slice(0, s) + blocks[b].text.slice(e);
+    blocks.splice(a + 1, b - a);
+    record(false);
+    render(a, s);
+    emit();
+    return true;
+  }
+
   /* ---------- events ---------- */
   root.addEventListener("input", (e) => {
     const t = e.target.closest(".txt");
@@ -187,6 +227,33 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     const t = e.target.closest(".txt");
     if (!t || e.isComposing) return;
     const i = idxOf(t);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      setAllSel(true);
+      const rg = document.createRange();
+      rg.selectNodeContents(root);
+      getSelection().removeAllRanges();
+      getSelection().addRange(rg);
+      return;
+    }
+    if (allSel) {
+      if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        return clearAll();
+      }
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        record(false);
+        blocks = [newBlock("p", e.key)];
+        setAllSel(false);
+        render(0, "end");
+        return emit();
+      }
+      if (!(e.ctrlKey || e.metaKey)) setAllSel(false);
+    } else if ((e.key === "Backspace" || e.key === "Delete") && deleteAcross()) {
+      e.preventDefault();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
       e.preventDefault();
       return undo();
@@ -223,6 +290,12 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
     else document.execCommand("insertText", false, text.replace(/\n/g, " "));
   });
   root.addEventListener("drop", (e) => e.preventDefault());
+  root.addEventListener("copy", (e) => {
+    if (!allSel) return;
+    e.preventDefault();
+    e.clipboardData.setData("text/plain", blocksToSource(blocks));
+  });
+  root.addEventListener("mousedown", () => allSel && setAllSel(false));
   root.addEventListener("focusin", (e) => {
     const t = e.target.closest(".txt");
     if (!t) return;
@@ -359,6 +432,7 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
       render();
     },
     getSource: () => blocksToSource(blocks),
+    clearAll,
     undo,
     focus: () => focusAt(cur, "end"),
     isEmpty: () => blocks.every((b) => !b.text.trim()),

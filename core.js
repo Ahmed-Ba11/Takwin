@@ -475,6 +475,7 @@ export function sanitizeState(d) {
     theme: Object.hasOwn(themes, o.theme) ? o.theme : "mist",
     motion: o.motion !== false,
     example: Object.hasOwn(examples, o.example) ? o.example : null,
+    libId: typeof o.libId === "string" && o.libId ? o.libId : null,
   };
 }
 

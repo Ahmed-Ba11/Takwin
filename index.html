@@ -17,6 +17,8 @@
     <header class="topbar">
       <a href="#home" class="brand" aria-label="تكوين — الصفحة الرئيسة"><svg class="logo" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><rect class="l1" x="9" y="4" width="30" height="22" rx="8" fill="#b2874d" fill-opacity=".9"/><rect class="l2" x="5" y="14" width="32" height="22" rx="8" fill="#fff" fill-opacity=".75" stroke="#203f36" stroke-opacity=".3"/><rect class="l3" x="13" y="26" width="30" height="18" rx="7" fill="#203f36"/></svg><span>تكوين</span></a>
       <a id="back" class="button ghost back" href="#home" hidden><span aria-hidden="true">→</span> الرئيسية</a>
+      <span class="grow"></span>
+      <a id="lib-link" class="button ghost lib-link" href="#library">مدونتي <span id="lib-count" class="count-badge" hidden>0</span></a>
     </header>
 
     <main id="home" class="view">
@@ -26,6 +28,7 @@
           <h1>حوّل نصّك إلى ملخّص مرتّب أو بطاقات أو مقال</h1>
           <p>اكتب أو الصق نصّك، واختر الشكل، واحفظه PDF بالتنسيق نفسه.</p>
           <div class="hero-actions"><a class="button primary big" href="#write" data-new>ابدأ الكتابة</a><button class="button ghost big" type="button" data-home-example>شاهد مثالًا</button></div>
+          <a class="text-link" href="#library">افتح مدونتي</a>
         </div>
         <div class="demo" aria-label="مثال: النص نفسه بثلاثة أشكال">
           <div class="mini-editor glass-card" aria-hidden="true">
@@ -78,6 +81,7 @@
         <button class="button ghost" id="undo" type="button" aria-label="تراجع">تراجع</button>
         <span class="grow"></span>
         <span id="save-status" class="muted" aria-live="polite"></span>
+        <button class="button ghost" id="lib-save" type="button">حفظ في مدونتي</button>
         <button class="button primary" id="pdf" type="button">حفظ PDF</button>
       </div>
 
@@ -125,6 +129,7 @@
           </details>
           <div class="editor-foot">
             <span id="count" class="muted"></span>
+            <button type="button" class="button ghost small" id="clear" title="يمسح العنوان والنص"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg> مسح النص</button>
             <button type="button" class="button ghost small" id="arrange" title="يقترح نوعًا لكل سطر">ترتيب سريع</button>
           </div>
         </section>
@@ -134,8 +139,36 @@
       </div>
 
       <div class="mobile-bar">
+        <button class="button ghost big" id="lib-save-mobile" type="button">حفظ في مدونتي</button>
         <button class="button primary big" id="pdf-mobile" type="button">حفظ PDF</button>
       </div>
+    </main>
+
+    <main id="library" class="view library-view" hidden>
+      <header class="lib-head">
+        <h1>مدونتي</h1>
+        <p class="muted">نصوصك محفوظة على هذا الجهاز وهذا المتصفح فقط. النسخة الاحتياطية تنقلها إلى جهاز آخر.</p>
+      </header>
+      <div class="lib-tools">
+        <input id="lib-search" type="search" placeholder="ابحث في مدونتي" aria-label="بحث في مدونتي" autocomplete="off" />
+        <div class="chips" role="radiogroup" aria-label="تصفية" id="lib-filter">
+          <button role="radio" data-f="all" aria-checked="true">الكل</button>
+          <button role="radio" data-f="summary" aria-checked="false">ملخّصات</button>
+          <button role="radio" data-f="cards" aria-checked="false">بطاقات</button>
+          <button role="radio" data-f="article" aria-checked="false">مقالات</button>
+        </div>
+        <span class="grow"></span>
+        <button class="button ghost small" id="lib-export" type="button">نزّل نسخة احتياطية</button>
+        <button class="button ghost small" id="lib-import" type="button">استعد من نسخة</button>
+        <input type="file" id="lib-file" accept="application/json,.json" hidden />
+      </div>
+      <div id="lib-grid" class="lib-grid"></div>
+      <div id="lib-empty" class="empty glass-card" hidden>
+        <h2>لا توجد نصوص محفوظة بعد</h2>
+        <p>احفظ نصّك من شاشة الكتابة ليظهر هنا.</p>
+        <a class="button primary" href="#write" data-new>اكتب أول نص</a>
+      </div>
+      <p id="lib-none" class="muted lib-none" hidden>لا توجد نتائج مطابقة.</p>
     </main>
 
     <div id="typemenu" class="typemenu glass-card" role="menu" hidden></div>
