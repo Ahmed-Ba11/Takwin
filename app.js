@@ -226,9 +226,13 @@ function syncToggleLabel() {
   b.textContent = all.every((c) => c.dataset.open === "true") ? "طيّ الكل" : "فتح الكل";
 }
 
-el.preview.addEventListener("click", (e) => {
+// Example buttons live in both the editor (try-row) and the preview empty state.
+document.addEventListener("click", (e) => {
   const ex = e.target.closest("[data-example]");
-  if (ex) return loadExample(ex.dataset.example);
+  if (ex) loadExample(ex.dataset.example);
+});
+el.preview.addEventListener("click", (e) => {
+  if (e.target.closest("[data-example]")) return;
   if (e.target.closest("[data-study]")) return startStudy();
   if (e.target.closest("[data-toggle-all]")) {
     const all = $$(".sec", el.preview);
