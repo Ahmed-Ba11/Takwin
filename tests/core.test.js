@@ -9,7 +9,7 @@ import { sourceToBlocks, blocksToSource, detectShortcut, suggest, arrange, newBl
 
 const words = (s) => s.replace(/[#>*•\-–]|[0-9٠-٩]+[.)]/g, " ").split(/\s+/).filter(Boolean);
 const latin = (s) => s.replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/٪/g, "%");
-const textOf = (html) => latin(html.replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/g, " "));
+const textOf = (html) => latin(html.replace(/<\/?bdi>/g, "").replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/g, " "));
 
 test("markup becomes the right blocks", () => {
   const b = parseBlocks("# عنوان\nفقرة أولى\nسطر ثانٍ\n\n- أ\n- ب\n\n1. خطوة\n2) خطوة ثانية\n\n> اقتباس\n\n85% من المستخدمين\n\n«نص مقتبس»");

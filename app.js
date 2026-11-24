@@ -292,7 +292,7 @@ function save() {
 }
 function changed(info = {}) {
   const words = countWords(state.source);
-  el.count.textContent = words ? `${words} كلمة` : "";
+  el.count.textContent = words ? `${localDigits(words)} كلمة` : "";
   clearTimeout(renderTimer);
   if (!info.textOnly) renderTimer = setTimeout(render, 120); // typing in the preview must not rebuild it
   syncDocUI();
@@ -329,7 +329,7 @@ function syncControls() {
   $$("[data-theme]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.theme === state.theme)));
   $("#motion").checked = state.motion;
   const w = countWords(state.source);
-  el.count.textContent = w ? `${w} كلمة` : "";
+  el.count.textContent = w ? `${localDigits(w)} كلمة` : "";
   syncSeg($("#form-switch"));
 }
 

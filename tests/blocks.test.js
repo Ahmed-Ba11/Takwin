@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildModel, toFlashcards, localDigits, renderDocument, examples } from "../core.js";
+import { buildModel, toFlashcards, localDigits, latinDigits, renderDocument, examples } from "../core.js";
 import { sourceToBlocks, blocksToSource, detectShortcut, suggest, arrange, newBlock } from "../blocks.js";
 
 test("block editor round-trips markup without losing a line", () => {
@@ -47,8 +47,8 @@ test("RTL numbers use Arabic-Indic digits and isolated percent", () => {
   assert.equal(localDigits("85%", "rtl"), "٨٥٪");
   assert.equal(localDigits("85%", "ltr"), "85%");
   const html = renderDocument({ title: "t", form: "article", source: "# عنوان\n1. أولى\n2. ثانية\n\n85% نسبة" });
-  assert.ok(html.includes('<span class="n">١</span>') && html.includes("٨٥٪"));
-  assert.ok(html.includes('<b dir="ltr">'));
+  assert.ok(html.includes('<span class="n">١.</span>') && html.includes("٨٥٪"));
+  assert.ok(!html.includes('dir="ltr"')); // numbers follow the RTL document, never a forced LTR run
 });
 
 test("explicit front/back blocks become headings and paragraphs in other forms", () => {

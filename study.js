@@ -30,10 +30,10 @@ export function openStudy(root, cards, { theme = "mist", dir = "rtl", onClose = 
     show();
   }
   function front(c) {
-    return c.big ? `<b class="bigv" dir="ltr">${e(c.front)}</b>` : `<h3 dir="auto">${e(c.front).replace(/\n/g, "<br>")}</h3>`;
+    return c.big ? `<b class="bigv">${e(c.front)}</b>` : `<h3 dir="auto">${e(c.front).replace(/\n/g, "<br>")}</h3>`;
   }
   function show() {
-    const head = `<div class="study-top"><button type="button" class="button ghost" data-close>إغلاق</button><div class="study-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${queue.length}" aria-valuenow="${Math.min(pos, queue.length)}"><i style="width:${(Math.min(pos, queue.length) / queue.length) * 100}%"></i></div><span class="study-count">${n(Math.min(pos + 1, queue.length))} / ${n(queue.length)}</span></div>`;
+    const head = `<div class="study-top"><button type="button" class="button ghost" data-close>إغلاق</button><div class="study-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${queue.length}" aria-valuenow="${Math.min(pos, queue.length)}"><i style="width:${(Math.min(pos, queue.length) / queue.length) * 100}%"></i></div><span class="study-count">${n(Math.min(pos + 1, queue.length))} من ${n(queue.length)}</span></div>`;
     if (pos >= queue.length) {
       root.innerHTML = `${head}<div class="study-end glass-card"><h2>انتهت المراجعة</h2><p>عدد البطاقات التي تعرفها: <b>${n(known)}</b> من <b>${n(total)}</b></p><div class="study-actions">${later.length ? `<button type="button" class="button primary" data-redo>أعد الصعبة فقط (${n(later.length)})</button>` : ""}<button type="button" class="button ghost" data-close>إغلاق</button></div></div>`;
       root.querySelector(".study-end button")?.focus();

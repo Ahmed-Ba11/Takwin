@@ -206,7 +206,7 @@ export function relativeTime(ts, now = Date.now()) {
   if (h < 24) return "قبل " + unit(h, "ساعة", "ساعتين", "ساعات", "ساعة");
   const d = Math.round(h / 24);
   if (d < 30) return "قبل " + unit(d, "يوم", "يومين", "أيام", "يومًا");
-  return new Date(ts).toLocaleDateString("ar", { year: "numeric", month: "long", day: "numeric" });
+  return new Date(ts).toLocaleDateString("ar-u-nu-arab", { year: "numeric", month: "long", day: "numeric" });
 }
 
 export const library = createLibrary({

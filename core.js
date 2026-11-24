@@ -170,21 +170,39 @@ export function buildModel(state) {
     );
   const { lead, sections } = toSections(blocks);
   const dir = direction(title + state.source);
+  docDir = dir;
   return { title, titleId, editable, blocks, all, lead, sections, dir, form: state.form, minutes: readingMinutes(state.source) };
 }
 
 const e = escapeHTML;
-const multi = (s) => e(s).replace(/\n/g, "<br>");
+let docDir = "rtl";
+// Latin runs inside Arabic text keep their own direction via <bdi>; numbers never do.
+const LATIN_RUN = /[A-Za-z][A-Za-z0-9_'’.\- ]*[A-Za-z0-9_]|[A-Za-z]/g;
+function multi(s) {
+  s = String(s ?? "");
+  let out = "";
+  let last = 0;
+  if (docDir === "rtl")
+    for (const m of s.matchAll(LATIN_RUN)) {
+      out += e(s.slice(last, m.index)) + `<bdi>${e(m[0])}</bdi>`;
+      last = m.index + m[0].length;
+    }
+  return (out + e(s.slice(last))).replace(/\n/g, "<br>");
+}
 
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 /** Arabic-Indic digits and ٪ inside Arabic documents; unchanged otherwise. */
 export const localDigits = (s, dir = "rtl") =>
   dir === "rtl"
-    ? String(s).replace(/[0-9]/g, (d) => AR_DIGITS[d]).replace(/%/g, "٪")
+    ? String(s)
+        .replace(/(?<=[0-9٠-٩])\.(?=[0-9٠-٩])/g, "٫")
+        .replace(/(?<=[0-9٠-٩]),(?=[0-9٠-٩])/g, "٬")
+        .replace(/[0-9]/g, (d) => AR_DIGITS[d])
+        .replace(/%/g, "٪")
     : String(s);
 /** Back to Latin digits and % (used when editing a localized number in the preview). */
 export const latinDigits = (s) =>
-  String(s).replace(/[٠-٩]/g, (d) => AR_DIGITS.indexOf(d)).replace(/٪/g, "%");
+  String(s).replace(/[٠-٩]/g, (d) => AR_DIGITS.indexOf(d)).replace(/٪/g, "%").replace(/٫/g, ".").replace(/٬/g, ",");
 
 // data-block-id ties a rendered element to its source block (set only when blocks carry ids).
 const idAttr = (id, part = "", extra = "") =>
@@ -222,7 +240,7 @@ function blockHTML(b, o = {}) {
       return [`<blockquote dir="auto"${idAttr(b.id)}>${multi(b.text)}</blockquote>`];
     case "stat":
       return [
-        `<div class="stat"><b dir="ltr"${idAttr(b.id, "value")}>${e(localDigits(b.value, o.dir))}</b><span dir="auto"${idAttr(b.id, "label")}>${e(b.label)}</span></div>`,
+        `<div class="stat"><b${idAttr(b.id, "value")}>${e(localDigits(b.value, o.dir))}</b><span dir="auto"${idAttr(b.id, "label")}>${e(b.label)}</span></div>`,
       ];
     case "ul":
     case "ol": {
@@ -234,7 +252,7 @@ function blockHTML(b, o = {}) {
           `<${b.t} class="${i ? "cont" : ""}">${part
             .map(
               (x, j) =>
-                `<li dir="auto">${b.t === "ol" ? `<span class="n">${localDigits(i + j + 1, o.dir)}</span>` : ""}<span class="bt"${idAttr(b.ids?.[i + j])}>${multi(x)}</span></li>`,
+                `<li dir="auto">${b.t === "ol" ? `<span class="n">${localDigits(`${i + j + 1}.`, o.dir)}</span>` : ""}<span class="bt"${idAttr(b.ids?.[i + j])}>${multi(x)}</span></li>`,
             )
             .join("")}</${b.t}>`,
         );
@@ -362,7 +380,7 @@ function fcFront(c, i, dir) {
   const n = localDigits(String(i + 1).padStart(2, "0"), dir);
   const attrs = idAttr(c.frontId, c.frontPart, c.sep != null ? ` data-sep="${e(c.sep)}"` : "");
   return `<span class="num">${n}</span>${
-    c.big ? `<b class="bigv" dir="ltr"${attrs}>${e(c.front)}</b>` : `<h3 dir="auto"${attrs}>${multi(c.front)}</h3>`
+    c.big ? `<b class="bigv"${attrs}>${e(c.front)}</b>` : `<h3 dir="auto"${attrs}>${multi(c.front)}</h3>`
   }`;
 }
 function flashcardHTML(c, i, o) {
@@ -381,7 +399,7 @@ const tocHTML = (m, interactive) =>
   `<nav class="toc"${interactive ? ' aria-label="المحتويات"' : ""}><h3 class="label">المحتويات</h3><ol>${m.sections
     .map(
       (s, i) =>
-        `<li class="lv${s.level}"><a href="#${slug(i)}"${interactive ? ` data-goto="${slug(i)}"` : ""}${s.hid != null ? ` data-toc-for="${s.hid}"` : ""}><span class="n">${localDigits(i + 1, m.dir)}</span><span class="tt">${e(s.title)}</span></a></li>`,
+        `<li class="lv${s.level}"><a href="#${slug(i)}"${interactive ? ` data-goto="${slug(i)}"` : ""}${s.hid != null ? ` data-toc-for="${s.hid}"` : ""}><span class="n">${localDigits(`${i + 1}.`, m.dir)}</span><span class="tt">${e(s.title)}</span></a></li>`,
     )
     .join("")}</ol></nav>`;
 

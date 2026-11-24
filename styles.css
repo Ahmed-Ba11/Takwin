@@ -168,11 +168,11 @@ h1, h2, h3, h4 { font-family: var(--display); line-height: 1.45; }
 .document ul, .document ol { margin: 0; padding: 0; list-style: none; }
 .document li { position: relative; line-height: 1.95; font-size: 17px; margin: 2px 0; padding-inline-start: 30px; }
 .document ul > li::before { content: ""; position: absolute; inset-inline-start: 6px; top: 0.9em; width: 8px; height: 8px; border-radius: 50%; background: var(--hi); }
-.document ol > li > .n { position: absolute; inset-inline-start: 0; top: 0; color: var(--hi); font-weight: 700; direction: ltr; }
+.document ol > li > .n { position: absolute; inset-inline-start: 0; top: 0; color: var(--hi); font-weight: 700; }
 .sub { font-size: 20px; margin-top: 6px; }
 
 .stat { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 14px 20px; border-radius: 20px; background: linear-gradient(135deg, var(--card-a), var(--card-b)); border: 1px solid var(--card-line); }
-.stat b { font: 700 46px/1.15 var(--display); color: var(--hi); unicode-bidi: isolate; }
+.stat b { font: 700 46px/1.15 var(--display); color: var(--hi); }
 .stat span { font-size: 17px; }
 blockquote { margin: 0; padding: 6px 22px; border-inline-start: 4px solid var(--hi); font: 400 24px/1.85 var(--display); }
 
@@ -199,7 +199,7 @@ blockquote { margin: 0; padding: 6px 22px; border-inline-start: 4px solid var(--
 .lead { margin-bottom: 18px; }
 .cards-units { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; align-items: start; }
 .card { position: relative; border-radius: 24px; padding: 22px 24px; transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease); min-width: 0; }
-.card .num { display: block; font: 700 15px var(--display); color: var(--hi); margin-bottom: 4px; direction: ltr; text-align: start; }
+.card .num { display: block; font: 700 15px var(--display); color: var(--hi); margin-bottom: 4px; text-align: start; }
 .card h3 { font-size: 22px; line-height: 1.55; }
 .card-head { display: block; width: 100%; text-align: start; padding: 0; position: relative; padding-inline-end: 34px; color: inherit; min-height: 44px; }
 .card-head h3, .card-head .num { pointer-events: none; }
@@ -223,7 +223,7 @@ blockquote { margin: 0; padding: 6px 22px; border-inline-start: 4px solid var(--
 .toc li.lv2 { padding-inline-start: 16px; }
 .toc li.lv3 { padding-inline-start: 32px; }
 .toc a { display: flex; gap: 8px; min-height: 36px; align-items: center; font-size: 15px; line-height: 1.6; }
-.toc .n { color: var(--hi); font-weight: 700; direction: ltr; }
+.toc .n { color: var(--hi); font-weight: 700; }
 .toc a:hover { color: var(--hi); }
 .toc a.on { color: var(--hi); font-weight: 700; }
 .article-units { gap: 26px; }
@@ -270,7 +270,7 @@ blockquote { margin: 0; padding: 6px 22px; border-inline-start: 4px solid var(--
 .pdf-stage { position: fixed; left: -10000px; top: 0; width: 794px; pointer-events: none; }
 .pdf-page { width: 794px; height: 1123px; position: relative; overflow: hidden; margin: 0; }
 .pdf-body { position: absolute; inset: 52px 54px 70px; }
-.pdf-foot { position: absolute; bottom: 28px; inset-inline: 0; text-align: center; font: 13px var(--body); color: var(--soft); direction: ltr; }
+.pdf-foot { position: absolute; bottom: 28px; inset-inline: 0; text-align: center; font: 13px var(--body); color: var(--soft); }
 .pdf-page .document { max-width: none; }
 .pdf-page .doc-head { margin: 0 0 22px; }
 .pdf-page .doc-head h2 { font-size: 38px; }
@@ -439,7 +439,7 @@ kbd { display: inline-block; min-width: 26px; padding: 0 7px; border-radius: 8px
 .fc .hint { display: block; margin-top: auto; padding-top: 14px; font-size: 12.5px; color: var(--soft); }
 .side { display: block; margin-bottom: 6px; font-size: 12.5px; font-weight: 700; color: var(--hi); }
 .fc-face .num, .card .num { display: block; margin-bottom: 4px; font: 700 14px var(--display); color: var(--hi); }
-.bigv { display: block; font: 700 46px/1.2 var(--display); color: var(--hi); unicode-bidi: isolate; text-align: start; }
+.bigv { display: block; font: 700 46px/1.2 var(--display); color: var(--hi); text-align: start; }
 .fc-face h3 { font-size: 22px; line-height: 1.6; }
 .preview .fc:hover { transform: translateY(-5px); }
 .fc::after { content: ""; position: absolute; inset: 0; border-radius: 24px; pointer-events: none; background: linear-gradient(110deg, transparent 40%, #ffffff59 50%, transparent 60%) no-repeat; background-size: 250% 100%; background-position: 130% 0; transition: background-position 0.9s var(--ease); }
@@ -458,7 +458,7 @@ body.study-open { overflow: hidden; }
 .study-top { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 640px; }
 .study-progress { flex: 1; height: 8px; border-radius: 8px; background: #ffffff55; overflow: hidden; }
 .study-progress i { display: block; height: 100%; background: var(--hi); transition: width 0.5s var(--ease); border-radius: 8px; }
-.study-count { font-size: 14px; direction: ltr; min-width: 52px; text-align: end; }
+.study-count { font-size: 14px; white-space: nowrap; text-align: end; }
 .study-stage { width: 100%; max-width: 560px; margin: auto 0; }
 .study-fc { animation: rise 0.5s var(--ease) both; }
 .study-fc .fc-face { min-height: 320px; text-align: center; align-items: center; }
@@ -512,8 +512,6 @@ body.study-open { overflow: hidden; }
 
 body { overflow-x: clip; }
 .workspace-view { overflow-x: clip; }
-.study-count, .fc-face .num, .card .num, .n, .stat b, .bigv { unicode-bidi: isolate; }
-.study-count { direction: ltr; }
 @media (max-width: 900px) { .editor { overflow: visible; } }
 
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
