@@ -40,8 +40,10 @@ export function createEditor(root, { onChange = () => {}, menu, mini, typebar })
   const txtOf = (i) => rows()[i]?.querySelector(".txt");
   const idxOf = (node) => rows().indexOf(node.closest(".blk"));
 
+  // Compact gutter: a coloured glyph per type; the full name shows on the current line only.
+  const GLYPH = { h: "ع", p: "¶", ul: "•", ol: "١", quote: "”", stat: "٪", front: "؟", back: "✓" };
   function rowHTML(b) {
-    return `<div class="blk" data-t="${b.t}" data-lv="${b.level || 1}" data-id="${b.id}"><button type="button" class="badge" aria-haspopup="menu" aria-label="نوع السطر: ${TYPES[b.t].label}"><i class="dot"></i><span>${TYPES[b.t].label}</span></button><div class="body"><div class="txt" contenteditable="true" dir="auto" role="textbox" data-ph="${PLACEHOLDER}" aria-label="${TYPES[b.t].label}"></div></div><div class="chip-slot"></div></div>`;
+    return `<div class="blk" data-t="${b.t}" data-lv="${b.level || 1}" data-id="${b.id}"><button type="button" class="badge" aria-haspopup="menu" aria-label="نوع السطر: ${TYPES[b.t].label}" title="${TYPES[b.t].label} — اضغط لتغيير النوع"><b class="g" aria-hidden="true">${GLYPH[b.t]}</b><span>${TYPES[b.t].label}</span></button><div class="body"><div class="txt" contenteditable="true" dir="auto" role="textbox" data-ph="${PLACEHOLDER}" aria-label="${TYPES[b.t].label}"></div></div><div class="chip-slot"></div></div>`;
   }
   function numbering() {
     let n = 0;

@@ -3,7 +3,7 @@
 Prompt for the next agent: continue Takween in `C:\Users\Ahmed\Desktop\Projects\Takwin` (branch main, repo Ahmed-Ba11/Takwin). Reply to the user in Saudi-friendly Arabic.
 
 ## Rules (user decisions)
-Simple clear MSA copy everywhere (no slogans, no English decorative labels); NO slides; PDF-only export (no HTML export); keep glass identity (cream, ink #203f36, accent #b2874d, themes mist/sand/olive, Thmanyah fonts); no AI; every commit pushed (`git push origin main`); never commit `desktop.ini`, `.claude/`, fonts binaries; commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`; do not touch `fonts.css` or `legacy-v3.html`.
+Simple clear MSA copy everywhere (no slogans, no English decorative labels); NO slides; PDF-only export (no HTML export); keep glass identity (cream, ink #203f36, accent #b2874d, themes mist/sand/olive, Thmanyah fonts); no AI; every commit pushed (`git push origin main`); never commit `desktop.ini`, `.claude/`, fonts binaries; commit messages end with the Co-Authored-By line of the model doing the work; do not touch `fonts.css` or `legacy-v3.html`.
 
 ## Built
 - `core.js`: `parseBlocks`, `buildModel`, `renderDocument` (interactive screen HTML), `renderPdfModel` (head + non-splittable units), `examples`, `sanitizeState`, `fileName`.
@@ -23,6 +23,12 @@ Block editor (`blocks.js`, `editor.js`): contenteditable row per block, source s
 
 ## Round 5 (done): edit directly in the preview
 The preview is another view of the editor's block model. `renderDocument({...state, blocks: editor.getBlocks()})` stamps every text element with `data-block-id` (+ `data-part`/`data-sep` for stats and derived flashcard faces; `data-toc-for` on TOC links; `data-title` for the free title). `preview-edit.js`: contenteditable on those elements, `input` -> `editor.setTextById` (no preview rebuild), Enter/Backspace via `beforeinput` -> `editor.splitById/backspaceById`, then `afterPreviewOp` re-renders and `focusTarget` restores the caret. `editor.js` id-based API (`retypeById` splits partial selections, `removeById`, `deleteRange`, quiet mode = no focus stealing) + shared undo/redo (`undo(true)`, `redo(true)`, redo button). `mini.js`: one floating type toolbar (colours + «حذف») for editor selections and preview focus/selection; docked above the keyboard on mobile. Flashcards: tapping text edits, the «اقلب» button (or empty card area) flips; study mode stays read-only. PDF/library renders get no ids (`renderPdfModel` strips blocks). Fixed: reading time now «٣ دقائق»; headings with المرحلة/الخطوة are never altered (tests; could not reproduce the glued «المرحلة العادات الهدف» in the current parser, likely from the removed old step layout).
+
+## Round 6 (done, by Claude Opus after the Sonnet session hit its weekly limit)
+- Arabic numbers follow RTL: no forced `dir="ltr"` on numbers, step markers `١.` on the right, Arabic decimal/thousands separators, Latin runs wrapped in `<bdi>` (`core.js` `multi`, `localDigits`; `tests/numbers.test.js`).
+- Writing space: editor and preview share the width (`.workspace` 1fr / 1.08fr); per-line gutter is a 34px coloured glyph (`editor.js` `GLYPH`), the type name shows as a small tag on the current line only; document-style title field; «وضع التركيز» (`#focus`, `setFocus` in app.js, `body.focus-mode`, remembered in localStorage `takween-focus`, desktop only).
+- Speed: preview cards no longer use `backdrop-filter`; workspace glows are gradients (no `filter: blur`); `render()` takes a fast path `patchUnits()` that swaps only changed units when the shell (head/TOC/unit count) is unchanged — keeps caret, collapsed sections, flipped cards. Clean-markup comparison uses `prevShell`/`prevPure` (the live DOM has editing attributes).
+- Mobile: when the docked type toolbar (`.mini.docked`) shows, the sticky `.typebar` is hidden (they overlapped).
 
 ## State
 Home, workspace (desktop + 375px), 3 forms × 3 themes and PDF export verified (see docs/QA.md). Not verified: real iOS/Safari, share sheet.

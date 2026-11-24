@@ -179,6 +179,7 @@ function render({ enter = false, switching = false } = {}) {
   const html = state.source.trim() || state.title.trim() ? renderDocument({ ...state, blocks: editor.getBlocks() }) : "";
   if (html === lastHTML && !enter && !switching) return;
   lastHTML = html;
+  if (!enter && !switching && html && patchUnits(html)) return;
   const keep = switching
     ? { cards: [], secs: [], flips: [] }
     : {
@@ -211,10 +212,67 @@ function render({ enter = false, switching = false } = {}) {
         }
       });
     prevUnits = now;
+    prevPure = pureUnits(html);
     setupReveal();
     previewEdit.enable();
-  } else prevUnits = [];
+  } else prevUnits = prevPure = [];
   if (motionOn() && (enter || switching)) el.preview.classList.add(switching ? "switching" : "enter");
+}
+
+/* Fast path while typing: when the document's shell (head, TOC, unit count) is unchanged,
+   replace only the units whose markup changed instead of rebuilding the whole preview.
+   Keeps open/closed sections, flipped cards and scroll position, and avoids re-painting
+   every glass surface on each keystroke. */
+let prevPure = [];
+let prevShell = "";
+const unitSel = ".units > *";
+function shellOf(root) {
+  const c = root.cloneNode(true);
+  c.querySelectorAll(unitSel).forEach((n) => n.remove());
+  c.querySelector(".doc-tools")?.remove();
+  return c.innerHTML;
+}
+function pureUnits(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html;
+  const d = t.content.querySelector(".document");
+  prevShell = d ? d.className + shellOf(d) : "";
+  return [...t.content.querySelectorAll(unitSel)].map((n) => n.outerHTML);
+}
+function patchUnits(html) {
+  const doc = $(".document", el.preview);
+  if (!doc || !prevPure.length) return false;
+  const t = document.createElement("template");
+  t.innerHTML = html;
+  const nd = t.content.querySelector(".document");
+  if (!nd) return false;
+  const oldU = $$(unitSel, el.preview);
+  const newU = [...nd.querySelectorAll(unitSel)];
+  if (oldU.length !== newU.length || oldU.length !== prevPure.length) return false;
+  const pure = newU.map((n) => n.outerHTML);
+  // Compare clean markup with clean markup (the live DOM carries editing attributes).
+  const shell = nd.className + shellOf(nd);
+  if (shell !== prevShell) return false;
+  pure.forEach((p, i) => {
+    if (p === prevPure[i]) return;
+    const old = oldU[i];
+    const fresh = newU[i];
+    fresh.style.setProperty("--i", Math.min(i, 10));
+    if (old.classList.contains("reveal")) fresh.classList.add("reveal", "in");
+    old.replaceWith(fresh);
+    if (old.matches(".sec")) setOpen(fresh, old.dataset.open !== "false");
+    const was = $$(".fc", old).map((c) => c.classList.contains("flipped"));
+    $$(".fc", fresh).forEach((c, j) => was[j] && flip(c.querySelector(".fc-in")));
+    if (motionOn()) {
+      fresh.classList.add("pop");
+      fresh.addEventListener("animationend", () => fresh.classList.remove("pop"), { once: true });
+    }
+  });
+  prevPure = pure;
+  prevUnits = $$(unitSel, el.preview).map((n) => n.outerHTML.replace(/ style="[^"]*"/, ""));
+  syncToggleLabel();
+  previewEdit.enable();
+  return true;
 }
 function setupReveal() {
   if (!motionOn() || !("IntersectionObserver" in window)) return;
@@ -371,6 +429,22 @@ function loadExample(name) {
 }
 $("#undo").addEventListener("click", () => editor.undo(true));
 $("#redo").addEventListener("click", () => editor.redo(true));
+
+// Focus mode: the preview steps aside and the page becomes a wide, calm sheet for writing.
+function setFocus(on) {
+  document.body.classList.toggle("focus-mode", on);
+  $("#focus").setAttribute("aria-pressed", String(on));
+  $("#focus span").textContent = on ? "إظهار المعاينة" : "وضع التركيز";
+  try { localStorage.setItem("takween-focus", on ? "1" : ""); } catch {}
+  if (!on) render({ switching: true });
+}
+$("#focus").addEventListener("click", () => {
+  const on = !document.body.classList.contains("focus-mode");
+  const go = () => setFocus(on);
+  if (motionOn() && document.startViewTransition) document.startViewTransition(go);
+  else go();
+});
+try { if (localStorage.getItem("takween-focus") === "1" && innerWidth > 900) setFocus(true); } catch {}
 const proposal = $("#proposal");
 $("#arrange").addEventListener("click", () => {
   if (editor.isEmpty()) return toast("ألصق نصًّا أولًا ثم اضغط «ترتيب سريع».");
